@@ -143,10 +143,40 @@ Please run tests for [backend|frontend|all]
 
 ## Testing Strategy
 
-1. Always run tests after implementing features
-2. Backend: Use pytest with fixtures for database testing
-3. Frontend: Use Jest and React Testing Library
-4. Integration tests should use test databases
+**CRITICAL REQUIREMENT**: For every major functionality implemented, comprehensive tests MUST be added before the feature is considered complete.
+
+### Test Requirements
+1. **Test Coverage**: Maintain test coverage above 80% for all code
+2. **Test-First Approach**: Write tests for every new feature, API endpoint, database model, service, and utility function
+3. **Test Types Required**:
+   - Unit tests for all functions and methods
+   - Integration tests for API endpoints
+   - Database tests with proper fixtures and cleanup
+   - Error handling and edge case tests
+   - Security and validation tests
+
+### Backend Testing Standards
+1. Use pytest with fixtures for database testing
+2. Test all API endpoints (success, error, edge cases)
+3. Test database models, relationships, and constraints
+4. Test authentication, authorization, and security features
+5. Test external API integrations with mocking
+6. Test background tasks and asynchronous operations
+7. Integration tests should use test databases with proper isolation
+
+### Frontend Testing Standards
+1. Use Jest and React Testing Library
+2. Test all components (rendering, interactions, state changes)
+3. Test hooks and custom logic
+4. Test API integration and error handling
+5. Test user workflows and accessibility
+
+### Test Implementation Rules
+- **Before committing**: All new code must have corresponding tests
+- **Before merging**: Test suite must pass with 80%+ coverage
+- **Test organization**: Group related tests in logical modules
+- **Test naming**: Use descriptive test names that explain the scenario
+- **Mock external dependencies**: Use proper mocking for external APIs and services
 
 ## Code Quality Standards
 
@@ -154,3 +184,4 @@ Please run tests for [backend|frontend|all]
 2. TypeScript: Use strict mode, avoid any types
 3. All code must pass linting before commit
 4. Maintain test coverage above 80%
+5. **No feature is complete without comprehensive tests**

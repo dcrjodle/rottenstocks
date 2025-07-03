@@ -82,8 +82,11 @@ install-backend: ## Install backend dependencies
 		$(PYTHON) -m venv venv && \
 		. venv/bin/activate && \
 		pip install --upgrade pip && \
-		pip install -r requirements.txt
-	@echo "$(GREEN)✓ Backend dependencies installed$(NC)"
+		echo "$(YELLOW)Note: Installing minimal dependencies due to Python 3.13 compatibility$(NC)" && \
+		pip install -r requirements-minimal.txt || \
+		(echo "$(YELLOW)Falling back to individual package installation...$(NC)" && \
+		pip install fastapi uvicorn python-dotenv structlog rich)
+	@echo "$(GREEN)✓ Backend dependencies installed (minimal set)$(NC)"
 
 install-frontend: ## Install frontend dependencies
 	@echo "$(BLUE)Installing frontend dependencies...$(NC)"
