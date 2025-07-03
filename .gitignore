@@ -208,3 +208,145 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ===========================
+# RottenStocks Specific
+# ===========================
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Docker override files
+docker-compose.override.yml
+
+# Logs
+logs/
+*.log
+
+# Database dumps and backups
+*.sql
+*.dump
+backups/
+
+# Redis dumps
+dump.rdb
+*.rdb
+
+# Alembic temporary files
+alembic/versions/*.py~
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ===========================
+# Node.js / Frontend
+# ===========================
+
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Vite
+.vite/
+
+# Environment files (Node.js)
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Storybook build outputs
+storybook-static
+
+# ===========================
+# Docker
+# ===========================
+
+# Docker Compose override files
+docker-compose.override.yml
+docker-compose.*.override.yml
+
+# Docker volumes
+docker-volumes/
+
+# ===========================
+# Testing
+# ===========================
+
+# Coverage reports
+coverage/
+.nyc_output
+lcov.info
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# E2E test artifacts
+screenshots/
+videos/
+
+# ===========================
+# Development Tools
+# ===========================
+
+# Pre-commit
+.pre-commit-cache/
+
+# Jupyter notebooks
+*.ipynb_checkpoints
+
+# Profiling data
+.prof
+
+# Local development database
+*.sqlite3
+*.db
+
+# Temporary files
+tmp/
+temp/

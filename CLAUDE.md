@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Frontend**: React 18 + TypeScript + Vite + Custom SASS/SCSS
 - **Backend**: FastAPI (Python) + SQLAlchemy + PostgreSQL
 - **AI/ML**: Google Gemini (gemini-1.5-flash) for sentiment analysis
-- **External APIs**: Twitter, Reddit, Alpha Vantage
+- **External APIs**: Reddit, Alpha Vantage
 
 ## Development Commands
 
@@ -57,6 +57,36 @@ docker-compose logs -f
 
 # Stop all services
 docker-compose down
+```
+
+### Makefile Commands
+```bash
+# Quick setup (recommended for new developers)
+make setup
+
+# Start development environment
+make dev
+
+# Run all tests
+make test
+
+# Health check all services
+make health
+
+# Install pre-commit hooks
+make install-hooks
+
+# Clean build artifacts
+make clean
+```
+
+### Health Checks
+```bash
+# Comprehensive health check
+python scripts/health-check.py --detailed
+
+# Environment validation
+python scripts/env-validator.py --check-optional
 ```
 
 ## Custom Claude Commands
