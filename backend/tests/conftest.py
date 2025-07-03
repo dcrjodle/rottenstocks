@@ -11,8 +11,11 @@ import pytest
 import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 from app.core.config import Settings, get_settings
+from app.db.base import Base
+from app.db.session import get_db
 from app.main import app
 
 
@@ -62,11 +65,48 @@ async def async_client(override_get_settings) -> AsyncGenerator[AsyncClient, Non
         yield ac
 
 
-# TODO: Add database fixtures when database is implemented
-# @pytest_asyncio.fixture
-# async def db_session():
-#     """Create a test database session."""
-#     pass
+@pytest_asyncio.fixture
+async def async_session(test_settings: Settings) -> AsyncGenerator[AsyncSession, None]:
+    """Create a test database session."""
+    # Create test engine
+    engine = create_async_engine(
+        str(test_settings.DATABASE_URL),
+        echo=False,  # Set to True for SQL debugging
+        pool_size=1,
+        max_overflow=0,
+    )
+    
+    # Create all tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    
+    # Create session factory
+    async_session_factory = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+    
+    # Create session
+    async with async_session_factory() as session:
+        yield session
+    
+    # Clean up - drop all tables
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    
+    await engine.dispose()
+
+
+@pytest.fixture
+def override_get_db(async_session: AsyncSession):
+    """Override the get_db dependency for database tests."""
+    async def _get_db_override():
+        yield async_session
+    
+    app.dependency_overrides[get_db] = _get_db_override
+    yield
+    app.dependency_overrides.clear()
 
 
 # TODO: Add Redis fixtures when Redis is implemented

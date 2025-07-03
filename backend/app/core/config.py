@@ -191,7 +191,7 @@ class Settings(BaseSettings):
     MAX_POSTS_PER_SYMBOL: int = 100
     
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
         case_sensitive = True
         extra = "ignore"
     
