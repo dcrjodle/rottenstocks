@@ -11,15 +11,17 @@ from typing import Any, Dict, List, Optional, Union
 
 from pydantic import (
     AnyHttpUrl,
-    BaseSettings,
     EmailStr,
     HttpUrl,
-    PostgresDsn,
-    RedisDsn,
     field_validator,
     model_validator,
 )
+from pydantic_settings import BaseSettings
 from pydantic_core import MultiHostUrl
+
+# Type definitions for URLs
+PostgresDsn = str  # Simplified for now
+RedisDsn = str     # Simplified for now
 
 
 class Settings(BaseSettings):
@@ -76,14 +78,7 @@ class Settings(BaseSettings):
     def assemble_db_connection(self) -> "Settings":
         """Assemble database URL if not provided."""
         if self.DATABASE_URL is None:
-            self.DATABASE_URL = MultiHostUrl.build(
-                scheme="postgresql+asyncpg",
-                username=self.POSTGRES_USER,
-                password=self.POSTGRES_PASSWORD,
-                host=self.POSTGRES_SERVER,
-                port=self.POSTGRES_PORT,
-                path=self.POSTGRES_DB,
-            )
+            self.DATABASE_URL = f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         return self
     
     # Redis Configuration

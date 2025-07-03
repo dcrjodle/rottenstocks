@@ -20,12 +20,18 @@ def configure_logging() -> None:
     settings = get_settings()
     
     # Configure standard library logging
-    logging.basicConfig(
-        format="%(message)s",
-        stream=sys.stdout,
-        level=getattr(logging, settings.LOG_LEVEL.upper()),
-        handlers=[RichHandler(rich_tracebacks=True)] if settings.DEBUG else []
-    )
+    if settings.DEBUG:
+        logging.basicConfig(
+            format="%(message)s",
+            level=getattr(logging, settings.LOG_LEVEL.upper()),
+            handlers=[RichHandler(rich_tracebacks=True)]
+        )
+    else:
+        logging.basicConfig(
+            format="%(message)s",
+            stream=sys.stdout,
+            level=getattr(logging, settings.LOG_LEVEL.upper())
+        )
     
     # Configure structlog
     structlog.configure(
