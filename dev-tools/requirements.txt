@@ -1,0 +1,4 @@
+# Requirements for dev-tools
+httpx>=0.25.0
+asyncpg>=0.28.0
+rich>=13.0.0
