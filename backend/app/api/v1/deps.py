@@ -10,10 +10,12 @@ from typing import Generator, Optional
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer
 from jose import JWTError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.security import verify_token
 from app.schemas.token import TokenPayload
+from app.db.session import get_db
 
 settings = get_settings()
 
@@ -71,14 +73,19 @@ def get_request_logger(request: Request):
     return getattr(request.state, "logger", None)
 
 
-# TODO: Add database session dependency when database is implemented
-# def get_db() -> Generator:
-#     """Get database session."""
-#     try:
-#         db = SessionLocal()
-#         yield db
-#     finally:
-#         db.close()
+async def get_database(
+    db: AsyncSession = Depends(get_db)
+) -> AsyncSession:
+    """
+    Database session dependency.
+    
+    Use this dependency to inject database sessions into endpoints.
+    Example:
+        @router.get("/stocks/")
+        async def get_stocks(db: AsyncSession = Depends(get_database)):
+            # Use db session
+    """
+    return db
 
 
 # TODO: Add Redis connection dependency when Redis is implemented
@@ -99,18 +106,33 @@ class CommonQueryParams:
         page: int = 1,
         limit: int = 20,
         skip: Optional[int] = None,
+        sort_by: Optional[str] = None,
+        sort_order: str = "asc",
+        search: Optional[str] = None,
     ):
         self.page = max(1, page)
         self.limit = min(max(1, limit), 100)  # Limit between 1 and 100
         self.skip = skip if skip is not None else (self.page - 1) * self.limit
+        self.sort_by = sort_by
+        self.sort_order = sort_order.lower() if sort_order.lower() in ["asc", "desc"] else "asc"
+        self.search = search.strip() if search else None
 
 
 def common_parameters(
     page: int = 1,
     limit: int = 20,
+    sort_by: Optional[str] = None,
+    sort_order: str = "asc",
+    search: Optional[str] = None,
 ) -> CommonQueryParams:
-    """Dependency for common pagination parameters."""
-    return CommonQueryParams(page=page, limit=limit)
+    """Dependency for common pagination and filtering parameters."""
+    return CommonQueryParams(
+        page=page, 
+        limit=limit, 
+        sort_by=sort_by, 
+        sort_order=sort_order,
+        search=search
+    )
 
 
 class RateLimitExceeded(HTTPException):
