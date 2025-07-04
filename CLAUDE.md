@@ -185,3 +185,45 @@ Please run tests for [backend|frontend|all]
 3. All code must pass linting before commit
 4. Maintain test coverage above 80%
 5. **No feature is complete without comprehensive tests**
+
+## Reporting and Documentation
+
+When significant issues, implementation challenges, or architectural decisions are encountered, Claude should create detailed reports in the `docs/reports/` folder.
+
+### Report Guidelines
+
+1. **File Naming**: Use format `{topic}-{YYYY-MM-DD}.md`
+   - Example: `database-testing-tools-issues-2025-07-04.md`
+
+2. **Report Structure**:
+   ```markdown
+   # Title
+   **Date**: Date  
+   **Author**: Claude Code Assistant  
+   **Context**: Brief context
+   
+   ## Overview
+   ## Issues Encountered and Solutions
+   ## Architecture Lessons
+   ## Recommendations for Future Development
+   ## Conclusion
+   ```
+
+3. **When to Create Reports**:
+   - Complex debugging sessions with multiple issues
+   - Architecture decisions and trade-offs
+   - Performance analysis and optimization
+   - Security issue analysis
+   - Integration challenges with external systems
+   - Tool development and process improvements
+
+4. **Report Content Should Include**:
+   - Root cause analysis of issues
+   - Solutions attempted and their outcomes
+   - Lessons learned and prevention strategies
+   - Code examples and patterns
+   - Performance observations
+   - Security considerations
+   - Recommendations for future development
+
+These reports help maintain institutional knowledge and prevent similar issues in the future.
