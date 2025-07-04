@@ -6,7 +6,7 @@ Tests expert creation, validation, computed properties, and specializations.
 
 import pytest
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -263,9 +263,9 @@ class TestExpertModel:
         assert expert.verification_date is None
         
         # Verify expert
-        before_verification = datetime.utcnow()
+        before_verification = datetime.now(timezone.utc)
         expert.verify()
-        after_verification = datetime.utcnow()
+        after_verification = datetime.now(timezone.utc)
         
         assert expert.is_verified is True
         assert expert.verification_date is not None

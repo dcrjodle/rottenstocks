@@ -6,7 +6,7 @@ timestamps, soft deletes, and audit fields.
 """
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta, timezone
 from uuid import UUID
 
 from sqlalchemy import String
@@ -34,13 +34,13 @@ class TestTimestampModel(Base, IDMixin, TimestampMixin):
     name: Mapped[Optional[str]] = mapped_column(String(50))
     
     def __init__(self, **kwargs):
-        from datetime import datetime
+        from datetime import datetime, timezone
         from uuid import uuid4
         
         if 'id' not in kwargs:
             kwargs['id'] = str(uuid4())
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if 'created_at' not in kwargs:
             kwargs['created_at'] = now
         if 'updated_at' not in kwargs:
@@ -54,13 +54,13 @@ class TestSoftDeleteModel(Base, IDMixin, TimestampMixin, SoftDeleteMixin):
     name: Mapped[Optional[str]] = mapped_column(String(50))
     
     def __init__(self, **kwargs):
-        from datetime import datetime
+        from datetime import datetime, timezone, timezone
         from uuid import uuid4
         
         if 'id' not in kwargs:
             kwargs['id'] = str(uuid4())
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if 'created_at' not in kwargs:
             kwargs['created_at'] = now
         if 'updated_at' not in kwargs:
@@ -77,13 +77,13 @@ class TestAuditModel(Base, IDMixin, TimestampMixin, AuditMixin):
     name: Mapped[Optional[str]] = mapped_column(String(50))
     
     def __init__(self, **kwargs):
-        from datetime import datetime
+        from datetime import datetime, timezone, timezone
         from uuid import uuid4
         
         if 'id' not in kwargs:
             kwargs['id'] = str(uuid4())
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if 'created_at' not in kwargs:
             kwargs['created_at'] = now
         if 'updated_at' not in kwargs:
@@ -100,7 +100,7 @@ class TestBaseModel(BaseModel):
     name: Mapped[Optional[str]] = mapped_column(String(50))
     
     def __init__(self, **kwargs):
-        from datetime import datetime
+        from datetime import datetime, timezone
         from uuid import uuid4
         
         # Set ID default if not provided
@@ -108,7 +108,7 @@ class TestBaseModel(BaseModel):
             kwargs['id'] = str(uuid4())
         
         # Set timestamp defaults if not provided
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if 'created_at' not in kwargs:
             kwargs['created_at'] = now
         if 'updated_at' not in kwargs:
@@ -124,7 +124,7 @@ class TestAuditableModel(AuditableModel):
     name: Mapped[Optional[str]] = mapped_column(String(50))
     
     def __init__(self, **kwargs):
-        from datetime import datetime
+        from datetime import datetime, timezone
         from uuid import uuid4
         
         # Set ID default if not provided
@@ -132,7 +132,7 @@ class TestAuditableModel(AuditableModel):
             kwargs['id'] = str(uuid4())
         
         # Set timestamp defaults if not provided
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if 'created_at' not in kwargs:
             kwargs['created_at'] = now
         if 'updated_at' not in kwargs:
@@ -179,9 +179,9 @@ class TestTimestampMixin:
     
     def test_automatic_timestamps(self):
         """Test that timestamps are set automatically."""
-        before_creation = datetime.utcnow()
+        before_creation = datetime.now(timezone.utc)
         model = TestTimestampModel(name="test")
-        after_creation = datetime.utcnow()
+        after_creation = datetime.now(timezone.utc)
         
         # Should have created_at timestamp
         assert model.created_at is not None
@@ -211,9 +211,9 @@ class TestSoftDeleteMixin:
         model = TestSoftDeleteModel(name="test")
         
         # Perform soft delete
-        before_delete = datetime.utcnow()
+        before_delete = datetime.now(timezone.utc)
         model.soft_delete()
-        after_delete = datetime.utcnow()
+        after_delete = datetime.now(timezone.utc)
         
         assert model.is_deleted is True
         assert model.deleted_at is not None

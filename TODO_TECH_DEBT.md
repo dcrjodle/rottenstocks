@@ -9,13 +9,14 @@ This document tracks technical debt and maintenance tasks that need to be addres
 #### [ ] Run all root tests and fix them
 **Priority:** High  
 **Estimated Effort:** 2-4 hours  
-**Description:** The backend test suite is currently showing 17 failed tests and 5 errors out of 182 total tests. While all database model tests (74/74) are passing successfully, there are failures in:
+**Description:** The backend test suite is currently showing 5 failed tests out of 182 total tests. While all database model tests (74/74) are passing successfully, there are failures in:
 
-- Configuration tests (CORS parsing, environment properties)
-- Health endpoint tests (async client issues)
-- Middleware tests (CORS, error handling, request logging)
-- Security tests (JWT token creation with time delta issues)
-- Dependency injection tests
+**Specific Failing Tests (as of 2025-07-04):**
+1. `tests/test_main.py::test_cors_headers` - CORS preflight returning 400 instead of 200/204
+2. `tests/test_middleware.py::TestCORSMiddleware::test_cors_preflight_request` - CORS preflight configuration issue
+3. `tests/test_middleware.py::TestCORSMiddleware::test_cors_simple_request` - CORS simple request functionality
+4. `tests/test_middleware.py::TestErrorHandlingMiddleware::test_500_error_handling` - Error handling middleware
+5. `tests/test_middleware.py::TestMiddlewareIntegration::test_all_middleware_headers_present` - Middleware integration issue
 
 **Impact:** These test failures prevent reliable CI/CD deployment and could hide integration issues.
 
@@ -36,14 +37,15 @@ This document tracks technical debt and maintenance tasks that need to be addres
 
 **Acceptance Criteria:**
 - [ ] All 182 backend tests pass successfully
-- [ ] Test coverage remains above 80%
+- [ ] Test coverage remains above 80% (currently at 40.38%)
 - [ ] No test warnings or errors in output
 - [ ] CI/CD pipeline can run tests reliably
 - [ ] All async test patterns working correctly
 
 **Related Issues:**
-- Test coverage currently at 75% (below 80% requirement)
+- Test coverage currently at 40.38% (below 80% requirement)
 - Some untested utility scripts (migration_utils.py, seed_data.py)
+- Repository pattern implementations need test coverage
 
 ---
 
@@ -55,7 +57,7 @@ This document tracks technical debt and maintenance tasks that need to be addres
 - [ ] Document database migration best practices
 
 ### 🔧 Code Quality  
-- [ ] Fix deprecated `datetime.utcnow()` warnings in models
+- [x] ~~Fix deprecated `datetime.utcnow()` warnings in models~~ (Completed 2025-07-04)
 - [ ] Standardize error handling patterns across endpoints
 - [ ] Add type hints to remaining utility functions
 
@@ -80,6 +82,8 @@ This document tracks technical debt and maintenance tasks that need to be addres
 ✅ **Database Models Testing** - All 74 database model tests passing (100% coverage)  
 ✅ **Migration System** - Database migrations working with rollback capability  
 ✅ **Manual Model Testing** - All CRUD operations and relationships verified  
+✅ **Database Improvement Plan** - Implemented comprehensive database utilities, repositories, and configuration (2025-07-04)
+✅ **DateTime Timezone Fixes** - Fixed all datetime.utcnow() deprecation warnings (2025-07-04)  
 
 ---
 

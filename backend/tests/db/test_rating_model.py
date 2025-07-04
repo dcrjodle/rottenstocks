@@ -6,7 +6,7 @@ Tests rating creation, validation, computed properties, and relationships.
 
 import pytest
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -29,7 +29,7 @@ class TestRatingModel:
             recommendation=RecommendationType.BUY,
             confidence=Decimal("0.85"),
             price_target=Decimal("150.00"),
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         assert rating.stock_id == "stock123"
@@ -52,7 +52,7 @@ class TestRatingModel:
             confidence=Decimal("0.72"),
             sample_size=1247,
             sentiment_sources="Reddit, Twitter, StockTwits",
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         assert rating.stock_id == "stock123"
@@ -71,7 +71,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("4.5"),
             recommendation=RecommendationType.STRONG_BUY,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating1.is_bullish is True
         
@@ -81,7 +81,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("4.0"),
             recommendation=RecommendationType.BUY,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating2.is_bullish is True
         
@@ -91,7 +91,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("3.0"),
             recommendation=RecommendationType.HOLD,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating3.is_bullish is False
         
@@ -101,7 +101,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("2.0"),
             recommendation=RecommendationType.SELL,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating4.is_bullish is False
     
@@ -113,7 +113,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("1.5"),
             recommendation=RecommendationType.STRONG_SELL,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating1.is_bearish is True
         
@@ -123,7 +123,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("2.0"),
             recommendation=RecommendationType.SELL,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating2.is_bearish is True
         
@@ -133,7 +133,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("3.0"),
             recommendation=RecommendationType.HOLD,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating3.is_bearish is False
         
@@ -143,7 +143,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("4.0"),
             recommendation=RecommendationType.BUY,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert rating4.is_bearish is False
     
@@ -156,7 +156,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("4.0"),
             recommendation=RecommendationType.BUY,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert expert_rating.is_expert_rating is True
         assert expert_rating.is_popular_rating is False
@@ -167,7 +167,7 @@ class TestRatingModel:
             rating_type=RatingType.POPULAR,
             score=Decimal("3.5"),
             recommendation=RecommendationType.HOLD,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         assert popular_rating.is_expert_rating is False
         assert popular_rating.is_popular_rating is True
@@ -179,7 +179,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("4.2"),
             recommendation=RecommendationType.BUY,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         # 4.2 out of 5.0 = 84%
@@ -211,7 +211,7 @@ class TestRatingModel:
                 rating_type=RatingType.EXPERT,
                 score=Decimal("3.0"),
                 recommendation=recommendation,
-                rating_date=datetime.utcnow()
+                rating_date=datetime.now(timezone.utc)
             )
             assert rating.recommendation_display == expected_display
     
@@ -223,7 +223,7 @@ class TestRatingModel:
             score=Decimal("3.5"),
             recommendation=RecommendationType.HOLD,
             confidence=Decimal("0.75"),
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         # Update rating
@@ -253,7 +253,7 @@ class TestRatingModel:
             recommendation=RecommendationType.HOLD,
             confidence=Decimal("0.75"),
             summary="Original summary",
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         # Update only score and recommendation
@@ -276,7 +276,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("3.0"),
             recommendation=RecommendationType.HOLD,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         # Test upper bound
@@ -303,7 +303,7 @@ class TestRatingModel:
             rating_type=RatingType.EXPERT,
             score=Decimal("4.2"),
             recommendation=RecommendationType.BUY,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         # Mock the relationships for repr test
@@ -325,7 +325,7 @@ class TestRatingModel:
             rating_type=RatingType.POPULAR,
             score=Decimal("3.8"),
             recommendation=RecommendationType.HOLD,
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         
         # Mock the stock relationship for repr test
@@ -372,7 +372,7 @@ class TestRatingModel:
             price_at_rating=Decimal("120.00"),
             summary="Strong buy based on fundamentals",
             analysis="Company shows excellent growth prospects",
-            rating_date=datetime.utcnow()
+            rating_date=datetime.now(timezone.utc)
         )
         async_session.add(rating)
         await async_session.commit()
@@ -432,8 +432,8 @@ class TestRatingModel:
             analysis="Detailed analysis of company's competitive position and growth prospects indicates significant upside potential.",
             risks="Main risks include regulatory changes and increased competition",
             catalysts="Upcoming product launch and market expansion",
-            rating_date=datetime.utcnow(),
-            expiry_date=datetime.utcnow() + timedelta(days=90)
+            rating_date=datetime.now(timezone.utc),
+            expiry_date=datetime.now(timezone.utc) + timedelta(days=90)
         )
         
         # Save to database

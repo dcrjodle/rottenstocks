@@ -6,7 +6,7 @@ Tests social post creation, validation, computed properties, and sentiment analy
 
 import pytest
 from decimal import Decimal
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -32,8 +32,8 @@ class TestSocialPostModel:
             upvotes=152,
             downvotes=5,
             comment_count=23,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert post.stock_id == "stock123"
@@ -65,8 +65,8 @@ class TestSocialPostModel:
             comment_count=12,
             share_count=34,
             hashtags='["AI", "Tech"]',
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert post.platform == Platform.TWITTER
@@ -84,8 +84,8 @@ class TestSocialPostModel:
             score=50,
             comment_count=10,
             share_count=5,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Engagement = score + (comments * 2) + (shares * 3)
@@ -98,8 +98,8 @@ class TestSocialPostModel:
             platform=Platform.TWITTER,
             platform_post_id="test2",
             content="Test content 2",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Should be 0 when no engagement metrics
@@ -112,8 +112,8 @@ class TestSocialPostModel:
             platform_post_id="test3",
             content="Test content 3",
             comment_count=8,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Engagement = 0 + (8 * 2) + 0 = 16
@@ -128,8 +128,8 @@ class TestSocialPostModel:
             platform_post_id="positive1",
             content="Great stock performance!",
             sentiment_type=SentimentType.POSITIVE,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert positive_post.is_positive_sentiment is True
@@ -142,8 +142,8 @@ class TestSocialPostModel:
             platform_post_id="verypositive1",
             content="Amazing earnings!",
             sentiment_type=SentimentType.VERY_POSITIVE,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert very_positive_post.is_positive_sentiment is True
@@ -156,8 +156,8 @@ class TestSocialPostModel:
             platform_post_id="negative1",
             content="Poor performance lately",
             sentiment_type=SentimentType.NEGATIVE,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert negative_post.is_positive_sentiment is False
@@ -170,8 +170,8 @@ class TestSocialPostModel:
             platform_post_id="verynegative1",
             content="Terrible earnings miss",
             sentiment_type=SentimentType.VERY_NEGATIVE,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert very_negative_post.is_positive_sentiment is False
@@ -184,8 +184,8 @@ class TestSocialPostModel:
             platform_post_id="neutral1",
             content="Stock is holding steady",
             sentiment_type=SentimentType.NEUTRAL,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert neutral_post.is_positive_sentiment is False
@@ -208,8 +208,8 @@ class TestSocialPostModel:
                 platform_post_id=f"test_{sentiment_type.value}",
                 content="Test content",
                 sentiment_type=sentiment_type,
-                posted_at=datetime.utcnow(),
-                collected_at=datetime.utcnow()
+                posted_at=datetime.now(timezone.utc),
+                collected_at=datetime.now(timezone.utc)
             )
             assert post.sentiment_display == expected_display
         
@@ -219,8 +219,8 @@ class TestSocialPostModel:
             platform=Platform.TWITTER,
             platform_post_id="no_sentiment",
             content="Test content",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         assert post_no_sentiment.sentiment_display == "Unknown"
     
@@ -240,8 +240,8 @@ class TestSocialPostModel:
                 platform=platform,
                 platform_post_id=f"test_{platform.value}",
                 content="Test content",
-                posted_at=datetime.utcnow(),
-                collected_at=datetime.utcnow()
+                posted_at=datetime.now(timezone.utc),
+                collected_at=datetime.now(timezone.utc)
             )
             assert post.platform_display == expected_display
     
@@ -252,8 +252,8 @@ class TestSocialPostModel:
             platform=Platform.REDDIT,
             platform_post_id="sentiment_test",
             content="This stock looks interesting",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Initially no sentiment
@@ -263,12 +263,12 @@ class TestSocialPostModel:
         assert post.analyzed_at is None
         
         # Update with positive sentiment
-        before_analysis = datetime.utcnow()
+        before_analysis = datetime.now(timezone.utc)
         post.update_sentiment(
             sentiment_score=Decimal("0.75"),
             confidence=Decimal("0.88")
         )
-        after_analysis = datetime.utcnow()
+        after_analysis = datetime.now(timezone.utc)
         
         assert post.sentiment_score == Decimal("0.75")
         assert post.sentiment_confidence == Decimal("0.88")
@@ -283,8 +283,8 @@ class TestSocialPostModel:
             platform=Platform.REDDIT,
             platform_post_id="categorization_test",
             content="Test content",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Test different score ranges
@@ -315,8 +315,8 @@ class TestSocialPostModel:
             platform=Platform.REDDIT,
             platform_post_id="bounds_test",
             content="Test content",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Test upper bounds
@@ -342,8 +342,8 @@ class TestSocialPostModel:
             platform=Platform.REDDIT,
             platform_post_id="engagement_test",
             content="Test content",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Update all engagement metrics
@@ -370,8 +370,8 @@ class TestSocialPostModel:
             content="Test content",
             score=50,
             comment_count=10,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Update only some metrics
@@ -395,8 +395,8 @@ class TestSocialPostModel:
             platform_post_id="repr_test",
             content="Test content for repr",
             sentiment_type=SentimentType.POSITIVE,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         # Mock the stock relationship for repr test
@@ -419,8 +419,8 @@ class TestSocialPostModel:
             mentions_count=2,
             has_financial_data=True,
             contains_prediction=True,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert post.mentions_count == 2
@@ -438,8 +438,8 @@ class TestSocialPostModel:
             subreddit="wallstreetbets",
             upvotes=234,
             downvotes=12,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert reddit_post.subreddit == "wallstreetbets"
@@ -455,8 +455,8 @@ class TestSocialPostModel:
             content="Test Twitter post with #hashtags",
             hashtags='["stocks", "investing", "finance"]',
             share_count=45,
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         
         assert twitter_post.hashtags == '["stocks", "investing", "finance"]'
@@ -488,8 +488,8 @@ class TestSocialPostModel:
             platform=Platform.REDDIT,
             platform_post_id="unique_test_123",
             content="First post",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         async_session.add(post1)
         await async_session.commit()
@@ -500,8 +500,8 @@ class TestSocialPostModel:
             platform=Platform.REDDIT,  # Same platform
             platform_post_id="unique_test_123",  # Same platform post ID
             content="Second post",
-            posted_at=datetime.utcnow(),
-            collected_at=datetime.utcnow()
+            posted_at=datetime.now(timezone.utc),
+            collected_at=datetime.now(timezone.utc)
         )
         async_session.add(post2)
         
@@ -544,9 +544,9 @@ class TestSocialPostModel:
             contains_prediction=True,
             subreddit="stocks",
             hashtags='["analysis", "tech", "earnings"]',
-            posted_at=datetime.utcnow() - timedelta(hours=2),
-            collected_at=datetime.utcnow() - timedelta(minutes=30),
-            analyzed_at=datetime.utcnow() - timedelta(minutes=10)
+            posted_at=datetime.now(timezone.utc) - timedelta(hours=2),
+            collected_at=datetime.now(timezone.utc) - timedelta(minutes=30),
+            analyzed_at=datetime.now(timezone.utc) - timedelta(minutes=10)
         )
         
         # Save to database
