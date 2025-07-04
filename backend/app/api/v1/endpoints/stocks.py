@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.deps import get_database, common_parameters, CommonQueryParams
 from app.services.stock_service import StockService
+from app.external_apis.providers import get_alpha_vantage_service
 from app.schemas.stock import (
     StockCreate,
     StockUpdate,
@@ -25,9 +26,12 @@ from app.schemas.stock import (
 router = APIRouter()
 
 
-def get_stock_service(db: AsyncSession = Depends(get_database)) -> StockService:
-    """Dependency to get StockService instance."""
-    return StockService(db)
+def get_stock_service(
+    db: AsyncSession = Depends(get_database),
+    alpha_vantage_service = Depends(get_alpha_vantage_service)
+) -> StockService:
+    """Dependency to get StockService instance with Alpha Vantage integration."""
+    return StockService(db, alpha_vantage_service)
 
 
 @router.post("/", response_model=StockResponse, status_code=status.HTTP_201_CREATED)
@@ -251,3 +255,115 @@ async def bulk_create_stocks(
     - Maximum 100 stocks per request
     """
     return await service.bulk_create_stocks(bulk_data)
+
+
+# Alpha Vantage Integration Endpoints
+
+@router.post("/search-and-create", response_model=List[StockResponse])
+async def search_and_create_stocks(
+    query: str = Query(..., description="Search query for stocks"),
+    service: StockService = Depends(get_stock_service),
+) -> List[StockResponse]:
+    """
+    Search for stocks using Alpha Vantage and create them in the database.
+    
+    - **query**: Search terms (company name or symbol)
+    - Returns up to 5 matching stocks
+    - Creates stocks that don't already exist
+    """
+    return await service.search_and_create_stock(query)
+
+
+@router.post("/symbol/{symbol}/sync-from-alpha-vantage", response_model=StockResponse)
+async def sync_stock_from_alpha_vantage(
+    symbol: str,
+    service: StockService = Depends(get_stock_service),
+) -> StockResponse:
+    """
+    Sync stock data from Alpha Vantage API.
+    
+    Updates both price data and company information from Alpha Vantage.
+    """
+    # First try to sync price
+    price_synced = await service.sync_stock_price_from_alpha_vantage(symbol)
+    
+    # Then try to enrich data
+    data_enriched = await service.enrich_stock_from_alpha_vantage(symbol)
+    
+    if not price_synced and not data_enriched:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to sync stock data for {symbol} from Alpha Vantage"
+        )
+    
+    # Get updated stock
+    stock = await service.get_stock_by_symbol(symbol)
+    if not stock:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stock with symbol {symbol} not found after sync"
+        )
+    
+    return stock
+
+
+@router.post("/symbol/{symbol}/create-from-alpha-vantage", response_model=StockResponse)
+async def create_stock_from_alpha_vantage(
+    symbol: str,
+    service: StockService = Depends(get_stock_service),
+) -> StockResponse:
+    """
+    Create a new stock using Alpha Vantage data.
+    
+    Fetches company overview and current quote from Alpha Vantage
+    to create a new stock entry.
+    """
+    stock = await service.create_stock_from_alpha_vantage(symbol)
+    if not stock:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to create stock for {symbol} using Alpha Vantage data"
+        )
+    
+    return stock
+
+
+@router.get("/symbol/{symbol}/quote", response_model=dict)
+async def get_real_time_quote(
+    symbol: str,
+    service: StockService = Depends(get_stock_service),
+) -> dict:
+    """
+    Get real-time quote from Alpha Vantage.
+    
+    Returns current market data without updating the database.
+    """
+    quote = await service.get_alpha_vantage_quote(symbol)
+    if not quote:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Quote not available for {symbol}"
+        )
+    
+    return quote
+
+
+@router.post("/bulk-sync-prices", response_model=dict)
+async def bulk_sync_prices_from_alpha_vantage(
+    symbols: List[str] = Query(..., description="List of stock symbols to sync"),
+    service: StockService = Depends(get_stock_service),
+) -> dict:
+    """
+    Bulk sync stock prices from Alpha Vantage.
+    
+    - **symbols**: List of stock symbols to sync
+    - Maximum 10 symbols per request to respect rate limits
+    """
+    if len(symbols) > 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum 10 symbols allowed per bulk sync request"
+        )
+    
+    results = await service.bulk_sync_prices_from_alpha_vantage(symbols)
+    return results

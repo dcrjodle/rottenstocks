@@ -1,0 +1,74 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-type:
+      - application/json
+      host:
+      - www.alphavantage.co
+      user-agent:
+      - RottenStocks/1.0.0
+      x-correlation-id:
+      - 3a534c2e-16b2-4c5a-b573-ef07259d91fa
+    method: GET
+    uri: https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=Apple
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAA/+3WTW+bMBgH8Hs/hZXTpnauCS8huSWEJGhZEwGRWk07OMRLUMFmjjOJVv3uM5ZW
+        bSySSTN6aX1C8DeGH48e/HgB5OisyV58wSLZkX1nAL6qk9V4fD5SMQOCfZmvWSZDneFy7neu/g50
+        IaA4J+pyUWQEzNi+SAXOUlGC0A9iENCkPsmEQJSFmuT/OMhkPWBBwMk2ZbSKrGgqyAZEAgv5sLWk
+        DUGO+T0Ri4KoNOoPTFRPOb9TXsb2al3DGaB/Yj35XGlOHhhVmVXsfUJWPeRCkBw4JzQpVSga1xP9
+        ajVJGyWMqxsh6Lpuv/Ocerpq5i3Btd7vvJK3Z1jmi3hNC0bDRfvII44f0uw6wgwsMcuY1tlARwCP
+        OPeOfI5jzqbGeRTOW3NeenDs37aPfOvH4VBfwW4j2S5qVMGXqKuR9Vdhm7KT8HP7shOO6f33Axdv
+        SnfaoP1OOSFU/vSyTUq37824wnYcp/eiZgzjMNaCe+MQfPCGYzAjmy3ZfDzPO2acUcFeXdrWSMsX
+        bCBtI7naqdLVJMOCo0i/l5ukFNOEgHmaV2V5HnVANym+HrF8jcsm3obdwNtu9Pu7tKEOPLhp0kdM
+        13JOBrfcWNell3JnDWaLaBnEw3kQ36md89tu2WZPtqNTqR1koi6C0Wymr+0M/2QcSKYtV0U+5exQ
+        AI/lBaYlmIszyz3aYbrd4fS/tRa7Ib+ray03dw34u3L8wa+Ovl08/QIItkClPg4AAA==
+    headers:
+      Allow:
+      - GET, HEAD, OPTIONS
+      CF-RAY:
+      - 95a18af89b24b8c3-CDG
+      Cf-Cache-Status:
+      - DYNAMIC
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Cross-Origin-Opener-Policy:
+      - same-origin
+      Date:
+      - Fri, 04 Jul 2025 20:58:49 GMT
+      Nel:
+      - '{"report_to":"heroku-nel","max_age":3600,"success_fraction":0.005,"failure_fraction":0.05,"response_headers":["Via"]}'
+      Referrer-Policy:
+      - same-origin
+      Report-To:
+      - '{"group":"heroku-nel","max_age":3600,"endpoints":[{"url":"https://nel.heroku.com/reports?ts=1751662729&sid=1b10b0ff-8a76-4548-befa-353fc6c6c045&s=ecxoiosTwb3V9EUEXtsQt0%2FhnhLyDgSsPHST0BlPMn8%3D"}]}'
+      Reporting-Endpoints:
+      - heroku-nel=https://nel.heroku.com/reports?ts=1751662729&sid=1b10b0ff-8a76-4548-befa-353fc6c6c045&s=ecxoiosTwb3V9EUEXtsQt0%2FhnhLyDgSsPHST0BlPMn8%3D
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Cookie, Origin
+      Via:
+      - 1.1 vegur
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+    status:
+      code: 200
+      message: OK
+version: 1

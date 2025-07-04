@@ -34,10 +34,11 @@ logger = logging.getLogger(__name__)
 class StockService:
     """Service class for stock-related business logic."""
     
-    def __init__(self, db: AsyncSession):
-        """Initialize with database session."""
+    def __init__(self, db: AsyncSession, alpha_vantage_service=None):
+        """Initialize with database session and optional Alpha Vantage service."""
         self.db = db
         self.repository = StockRepository(db)
+        self._alpha_vantage_service = alpha_vantage_service
     
     async def create_stock(self, stock_data: StockCreate) -> StockResponse:
         """
@@ -402,3 +403,194 @@ class StockService:
             price_change_percent=stock.price_change_percent,
             is_up=stock.is_up,
         )
+    
+    # Alpha Vantage Integration Methods
+    
+    async def sync_stock_price_from_alpha_vantage(self, symbol: str) -> bool:
+        """
+        Sync stock price from Alpha Vantage API.
+        
+        Args:
+            symbol: Stock symbol
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._alpha_vantage_service:
+            logger.warning("Alpha Vantage service not available for price sync", symbol=symbol)
+            return False
+        
+        try:
+            success = await self._alpha_vantage_service.update_stock_price(symbol)
+            if success:
+                logger.info("Stock price synced from Alpha Vantage", symbol=symbol)
+            else:
+                logger.warning("Failed to sync stock price from Alpha Vantage", symbol=symbol)
+            return success
+        except Exception as e:
+            logger.error("Error syncing stock price from Alpha Vantage", symbol=symbol, error=str(e))
+            return False
+    
+    async def enrich_stock_from_alpha_vantage(self, symbol: str) -> bool:
+        """
+        Enrich stock data with Alpha Vantage company overview.
+        
+        Args:
+            symbol: Stock symbol
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._alpha_vantage_service:
+            logger.warning("Alpha Vantage service not available for stock enrichment", symbol=symbol)
+            return False
+        
+        try:
+            success = await self._alpha_vantage_service.enrich_stock_data(symbol)
+            if success:
+                logger.info("Stock data enriched from Alpha Vantage", symbol=symbol)
+            else:
+                logger.warning("Failed to enrich stock data from Alpha Vantage", symbol=symbol)
+            return success
+        except Exception as e:
+            logger.error("Error enriching stock data from Alpha Vantage", symbol=symbol, error=str(e))
+            return False
+    
+    async def create_stock_from_alpha_vantage(self, symbol: str) -> Optional[StockResponse]:
+        """
+        Create a new stock using Alpha Vantage data.
+        
+        Args:
+            symbol: Stock symbol
+            
+        Returns:
+            Created stock response or None if failed
+        """
+        if not self._alpha_vantage_service:
+            logger.warning("Alpha Vantage service not available for stock creation", symbol=symbol)
+            return None
+        
+        try:
+            stock = await self._alpha_vantage_service.create_stock_from_search(symbol)
+            if stock:
+                logger.info("Stock created from Alpha Vantage data", symbol=symbol)
+                return self._to_response(stock)
+            else:
+                logger.warning("Failed to create stock from Alpha Vantage", symbol=symbol)
+                return None
+        except Exception as e:
+            logger.error("Error creating stock from Alpha Vantage", symbol=symbol, error=str(e))
+            return None
+    
+    async def search_and_create_stock(self, query: str) -> List[StockResponse]:
+        """
+        Search for stocks using Alpha Vantage and optionally create them.
+        
+        Args:
+            query: Search query
+            
+        Returns:
+            List of found or created stocks
+        """
+        if not self._alpha_vantage_service:
+            logger.warning("Alpha Vantage service not available for stock search", query=query)
+            return []
+        
+        try:
+            # Search Alpha Vantage
+            search_results = await self._alpha_vantage_service.search_symbols(query)
+            if not search_results or not search_results.best_matches:
+                logger.info("No stocks found in Alpha Vantage search", query=query)
+                return []
+            
+            created_stocks = []
+            for match in search_results.best_matches[:5]:  # Limit to top 5 matches
+                symbol = match.symbol
+                
+                # Check if stock already exists
+                existing_stock = await self.repository.get_by_symbol(symbol)
+                if existing_stock:
+                    created_stocks.append(self._to_response(existing_stock))
+                    continue
+                
+                # Create new stock from Alpha Vantage data
+                new_stock = await self.create_stock_from_alpha_vantage(symbol)
+                if new_stock:
+                    created_stocks.append(new_stock)
+            
+            logger.info(
+                "Stock search completed",
+                query=query,
+                found_matches=len(search_results.best_matches),
+                created_stocks=len(created_stocks)
+            )
+            return created_stocks
+            
+        except Exception as e:
+            logger.error("Error in stock search and creation", query=query, error=str(e))
+            return []
+    
+    async def bulk_sync_prices_from_alpha_vantage(self, symbols: List[str]) -> dict:
+        """
+        Bulk sync stock prices from Alpha Vantage.
+        
+        Args:
+            symbols: List of stock symbols
+            
+        Returns:
+            Dictionary with sync results
+        """
+        if not self._alpha_vantage_service:
+            logger.warning("Alpha Vantage service not available for bulk price sync")
+            return {"success": 0, "failed": len(symbols), "errors": ["Alpha Vantage service not available"]}
+        
+        try:
+            results = await self._alpha_vantage_service.sync_stock_prices(symbols)
+            success_count = sum(1 for success in results.values() if success)
+            failed_count = len(symbols) - success_count
+            
+            logger.info(
+                "Bulk price sync completed",
+                total=len(symbols),
+                success=success_count,
+                failed=failed_count
+            )
+            
+            return {
+                "success": success_count,
+                "failed": failed_count,
+                "details": results
+            }
+        except Exception as e:
+            logger.error("Error in bulk price sync", symbols=symbols, error=str(e))
+            return {"success": 0, "failed": len(symbols), "errors": [str(e)]}
+    
+    async def get_alpha_vantage_quote(self, symbol: str) -> Optional[dict]:
+        """
+        Get real-time quote from Alpha Vantage without persisting to database.
+        
+        Args:
+            symbol: Stock symbol
+            
+        Returns:
+            Quote data or None if not available
+        """
+        if not self._alpha_vantage_service:
+            return None
+        
+        try:
+            quote = await self._alpha_vantage_service.get_stock_quote(symbol)
+            if quote:
+                return {
+                    "symbol": quote.symbol,
+                    "price": float(quote.price),
+                    "change": float(quote.change),
+                    "change_percent": quote.change_percent,
+                    "volume": quote.volume,
+                    "latest_trading_day": quote.latest_trading_day.isoformat(),
+                    "source": "alpha_vantage"
+                }
+            return None
+        except Exception as e:
+            logger.error("Error getting Alpha Vantage quote", symbol=symbol, error=str(e))
+            return None

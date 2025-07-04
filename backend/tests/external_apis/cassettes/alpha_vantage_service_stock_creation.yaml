@@ -1,0 +1,150 @@
+interactions:
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-type:
+      - application/json
+      host:
+      - www.alphavantage.co
+      user-agent:
+      - RottenStocks/1.0.0
+      x-correlation-id:
+      - 7f1d1b37-bf22-4f33-8c78-8dac3bb45e32
+    method: GET
+    uri: https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=AAPL
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAA/13PwY7CIBCA4btPMSHZ2zphgKl1b572sofdR8BK2iZYmpa6McZ3t6UxETnO98OE
+        2wbmI759OFoPf1OITnzBLU2TSEIYr+dj8PNcHA6/P+LzRRVC6F23mCKFZFhmrhGatm5WN1iwzN0g
+        +PC/MmFJkjJmhH5oK7cGGvn9foFwCX46p0KbPXOpi6zYzRtsdGOEONhT29Vwstf0nlS8lbut1Flf
+        LivdpQ3TCJUPo3v+zZi33XuEqrFdnQpCotxJPh16N1Sui0snkZXiD5G6++b+AFvkOyeBAQAA
+    headers:
+      Allow:
+      - GET, HEAD, OPTIONS
+      CF-RAY:
+      - 95a18b11bd8fb831-CDG
+      Cf-Cache-Status:
+      - DYNAMIC
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Cross-Origin-Opener-Policy:
+      - same-origin
+      Date:
+      - Fri, 04 Jul 2025 20:58:53 GMT
+      Nel:
+      - '{"report_to":"heroku-nel","max_age":3600,"success_fraction":0.005,"failure_fraction":0.05,"response_headers":["Via"]}'
+      Referrer-Policy:
+      - same-origin
+      Report-To:
+      - '{"group":"heroku-nel","max_age":3600,"endpoints":[{"url":"https://nel.heroku.com/reports?ts=1751662733&sid=1b10b0ff-8a76-4548-befa-353fc6c6c045&s=lRZxALc%2FYVVSH1Vh0Rj6OZxq2y%2Bx99m%2FJMTn9E9hX9M%3D"}]}'
+      Reporting-Endpoints:
+      - heroku-nel=https://nel.heroku.com/reports?ts=1751662733&sid=1b10b0ff-8a76-4548-befa-353fc6c6c045&s=lRZxALc%2FYVVSH1Vh0Rj6OZxq2y%2Bx99m%2FJMTn9E9hX9M%3D
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Cookie, Origin
+      Via:
+      - 1.1 vegur
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+    status:
+      code: 200
+      message: OK
+- request:
+    body: ''
+    headers:
+      accept:
+      - application/json
+      accept-encoding:
+      - gzip, deflate
+      connection:
+      - keep-alive
+      content-type:
+      - application/json
+      host:
+      - www.alphavantage.co
+      user-agent:
+      - RottenStocks/1.0.0
+      x-correlation-id:
+      - 38b8e71f-b0e1-4312-89ca-5940037e14ad
+    method: GET
+    uri: https://www.alphavantage.co/query?function=OVERVIEW&symbol=AAPL
+  response:
+    body:
+      string: !!binary |
+        H4sIAAAAAAAA/31V25LiNhB9369QTaUqSRXj9YWL2TcPmBkSBrPYs6l5FEaAamzJkWRYbyr/npZ8
+        gWHY8AR9jtSt06ebfz4h+NzFVb7h2d0XdBcEq8Vdr44GUhKVVAXRwITnOWcoVjx9awlLnBssKIqM
+        oDlLW2BKZCpooShn73ALUYkwQ0FOBE3hS15mijKsiThDiqQHxjO+r1DK8wKzCqkDVkgWJKU4oz+I
+        RJQBxmQJNyCSkVQJzmgqe+ZEqSAq+U6dsCA9yLRFnGWUESSJONKUSAvVxUAd6kDQiYts+6tEGRZ7
+        ItWtCjYVEuRIWEnQb4ornMF9e/SLO+pbA7Sh8BNkgapc27V/1yl7SFKWEvQHZiUWlQac3rtsOYdU
+        R5yVeAOlNImgMon4rqHfrHLHS6EO922xqwmCurZc6BpLRkEonBFZv/uKK3MsVHHgIEUOde1wqkpB
+        hIXmSmfRccitkz3QPZrRIzk3ibIdF7lp0keBqEmYcdDkRNUBTuEfnPXQI+f7DHrwTFPBdUvqsmY4
+        JRvO36zWKpP5n9oinms7Y68Nht/TA2Z7Y65lEE+Drx29FIKwtNLISzztwrxkSjTRoI3GYA8udDAJ
+        J0/LaBE9vrbYnG1L2RwJF+EkWUfL+QRNoufVSxKu424ItltBpNS0aBmi+XI2X86TEC2iaNVDk5dV
+        uE7mywi+Bj300h2LdjuqPRtTZV5xUKqQXz5/Pp1OFta9tUC+ljyjMsXZK8EiZFvNjkmhSL4homUs
+        sIIufgU/gcM1A1wyuLe9e89pKc9YvBE1wQVVelRwO3ye448HfdtxR7ZtdwI/zJNpoGHH8/3h0Daf
+        FoU36ePmtGe5w3P8sQMca+yNWuABOvoN/Gye2rf6o66qKT3SLZh0RUR8gKE0R6/BV0oy827bsu1B
+        B4erWAeHVt9tQ+t6EtvbkuTZiAGUQVek4DuqQI09ZfWdbr8zVlQQAS9g+xpvztvWWcY1gcFgETPL
+        T3YE1/OvGeHfJVVVw3CsS4IpskH6tu2BwM6lwI8wErIutD0PTRiPbXt4wZrSDBbaFmRoSJdKNF7I
+        qhALBg+ScOdJHV6j10bIkf+B2hR2zTwrHsAWrqRK9NJQK5h+0y/X9a3hFWVtVIz19t0/lGaKRjcp
+        Deg6N9EnXjfe+cn9JDP/Su7/ZG85XYJEYKp39Cr8YOAZF/DPsK0RcM1wdHYNPDbhsV6gxuON5CNr
+        fM3RZu/GoD+yOueF3xLeSKwhH5S9hM4z50JNXbkPROHaQa7TBQfuX4S8PdH9wfAHY5ip99iCn2rh
+        fGs87iB7iqtnfoTXB0dwer1BXduzRp2Ern2bBEXZ3UVmumRUKqlgawPT5OqPvYH/blPUvFnGsWoY
+        jtP3nctdQkRKmJozCaMuzB51LdsffMQVVaVeWoYzdC3fG1wviilW5Lz9BvfOWeDvP+W4d5/+/Q/S
+        qMKM6AgAAA==
+    headers:
+      Allow:
+      - GET, HEAD, OPTIONS
+      CF-RAY:
+      - 95a18b129f2bb831-CDG
+      Cf-Cache-Status:
+      - DYNAMIC
+      Connection:
+      - keep-alive
+      Content-Encoding:
+      - gzip
+      Content-Type:
+      - application/json
+      Cross-Origin-Opener-Policy:
+      - same-origin
+      Date:
+      - Fri, 04 Jul 2025 20:58:53 GMT
+      Nel:
+      - '{"report_to":"heroku-nel","max_age":3600,"success_fraction":0.005,"failure_fraction":0.05,"response_headers":["Via"]}'
+      Referrer-Policy:
+      - same-origin
+      Report-To:
+      - '{"group":"heroku-nel","max_age":3600,"endpoints":[{"url":"https://nel.heroku.com/reports?ts=1751662733&sid=1b10b0ff-8a76-4548-befa-353fc6c6c045&s=lRZxALc%2FYVVSH1Vh0Rj6OZxq2y%2Bx99m%2FJMTn9E9hX9M%3D"}]}'
+      Reporting-Endpoints:
+      - heroku-nel=https://nel.heroku.com/reports?ts=1751662733&sid=1b10b0ff-8a76-4548-befa-353fc6c6c045&s=lRZxALc%2FYVVSH1Vh0Rj6OZxq2y%2Bx99m%2FJMTn9E9hX9M%3D
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      Vary:
+      - Cookie, Origin
+      Via:
+      - 1.1 vegur
+      X-Content-Type-Options:
+      - nosniff
+      X-Frame-Options:
+      - DENY
+    status:
+      code: 200
+      message: OK
+version: 1
