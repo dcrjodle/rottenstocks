@@ -13,23 +13,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **AI/ML**: Google Gemini (gemini-1.5-flash) for sentiment analysis
 - **External APIs**: Reddit, Alpha Vantage
 
+## Python Environment
+
+**IMPORTANT**: This project uses a virtual environment for Python dependencies. The virtual environment is located in the `backend/` directory and can only be used from there.
+
+```bash
+# Navigate to backend directory first
+cd backend
+
+# Activate virtual environment (REQUIRED for all Python commands)
+source venv/bin/activate
+
+# Deactivate when done
+deactivate
+```
+
 ## Development Commands
 
 ### Backend
 ```bash
+# Navigate to backend directory and activate virtual environment
+cd backend
+source venv/bin/activate
+
 # Start backend development server
-cd backend && uvicorn app.main:app --reload
+uvicorn app.main:app --reload
 
 # Run backend tests
-cd backend && pytest
+pytest
 
 # Run linting
-cd backend && ruff check .
-cd backend && ruff format .
+ruff check .
+ruff format .
 
 # Database migrations
-cd backend && alembic upgrade head
-cd backend && alembic revision --autogenerate -m "description"
+alembic upgrade head
+alembic revision --autogenerate -m "description"
+
+# Run dev-tools (from backend directory)
+python ../dev-tools/api_query_tool.py --help
 ```
 
 ### Frontend
@@ -82,11 +104,15 @@ make clean
 
 ### Health Checks
 ```bash
+# Navigate to backend directory and activate virtual environment
+cd backend
+source venv/bin/activate
+
 # Comprehensive health check
-python scripts/health-check.py --detailed
+python ../scripts/health-check.py --detailed
 
 # Environment validation
-python scripts/env-validator.py --check-optional
+python ../scripts/env-validator.py --check-optional
 ```
 
 ## Custom Claude Commands
