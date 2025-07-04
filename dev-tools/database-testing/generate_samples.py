@@ -167,10 +167,21 @@ class SampleDataGenerator:
         """Generate sample stocks."""
         print(f"📈 Generating {count} stocks...")
         
+        # First, check which stocks already exist
+        existing_result = await self.session.execute(select(Stock.symbol))
+        existing_symbols = {row[0] for row in existing_result.fetchall()}
+        
         stocks = []
         sample_data = random.sample(self.STOCK_DATA, min(count, len(self.STOCK_DATA)))
+        created_count = 0
+        skipped_count = 0
         
         for symbol, name, exchange, sector, base_price in sample_data:
+            if symbol in existing_symbols:
+                skipped_count += 1
+                print(f"  ⏭️  Skipping {symbol} (already exists)")
+                continue
+                
             # Add some price variation
             current_price = Decimal(str(base_price * random.uniform(0.8, 1.2)))
             previous_close = current_price * Decimal(str(random.uniform(0.95, 1.05)))
@@ -190,19 +201,34 @@ class SampleDataGenerator:
             )
             stocks.append(stock)
             self.session.add(stock)
+            existing_symbols.add(symbol)  # Track it for subsequent iterations
+            created_count += 1
         
-        await self.session.flush()
-        print(f"✅ Created {len(stocks)} stocks")
+        if created_count > 0:
+            await self.session.flush()
+        
+        print(f"✅ Created {created_count} stocks" + (f", skipped {skipped_count} duplicates" if skipped_count > 0 else ""))
         return stocks
     
     async def generate_experts(self, count: int) -> List[Expert]:
         """Generate sample experts."""
         print(f"👨‍💼 Generating {count} experts...")
         
+        # Check which experts already exist (by name to avoid duplicates)
+        existing_result = await self.session.execute(select(Expert.name))
+        existing_names = {row[0] for row in existing_result.fetchall()}
+        
         experts = []
         sample_data = random.sample(self.EXPERT_DATA, min(count, len(self.EXPERT_DATA)))
+        created_count = 0
+        skipped_count = 0
         
         for name, institution, specializations, years_exp in sample_data:
+            if name in existing_names:
+                skipped_count += 1
+                print(f"  ⏭️  Skipping {name} (already exists)")
+                continue
+                
             expert = Expert(
                 name=name,
                 institution=institution,
@@ -217,9 +243,13 @@ class SampleDataGenerator:
             )
             experts.append(expert)
             self.session.add(expert)
+            existing_names.add(name)  # Track it for subsequent iterations
+            created_count += 1
         
-        await self.session.flush()
-        print(f"✅ Created {len(experts)} experts")
+        if created_count > 0:
+            await self.session.flush()
+        
+        print(f"✅ Created {created_count} experts" + (f", skipped {skipped_count} duplicates" if skipped_count > 0 else ""))
         return experts
     
     async def generate_ratings(self, stocks: List[Stock], experts: List[Expert], 
@@ -368,17 +398,41 @@ class SampleDataGenerator:
         print(f"   Posts per stock: {posts_per_stock}")
         print()
         
-        stocks = await self.generate_stocks(stocks_count)
-        experts = await self.generate_experts(experts_count)
-        ratings = await self.generate_ratings(stocks, experts, ratings_per_stock)
-        posts = await self.generate_social_posts(stocks, posts_per_stock)
+        # Generate new stocks and experts
+        new_stocks = await self.generate_stocks(stocks_count)
+        new_experts = await self.generate_experts(experts_count)
+        
+        # Get all existing stocks and experts for ratings/posts generation
+        all_stocks_result = await self.session.execute(select(Stock))
+        all_stocks = list(all_stocks_result.scalars().all())
+        
+        all_experts_result = await self.session.execute(select(Expert))
+        all_experts = list(all_experts_result.scalars().all())
+        
+        # Generate ratings and posts using all available stocks/experts
+        ratings = []
+        posts = []
+        
+        if all_stocks and all_experts:
+            # Use new stocks if available, otherwise use existing stocks for ratings
+            stocks_for_ratings = new_stocks if new_stocks else all_stocks[:stocks_count]
+            ratings = await self.generate_ratings(stocks_for_ratings, all_experts, ratings_per_stock)
+        else:
+            print("⚠️  Cannot generate ratings: need both stocks and experts in database")
+        
+        if all_stocks:
+            # Use new stocks if available, otherwise use existing stocks for posts
+            stocks_for_posts = new_stocks if new_stocks else all_stocks[:stocks_count]
+            posts = await self.generate_social_posts(stocks_for_posts, posts_per_stock)
+        else:
+            print("⚠️  Cannot generate posts: need stocks in database")
         
         await self.session.commit()
         
         print()
         print("🎉 Sample data generation complete!")
-        print(f"   📈 {len(stocks)} stocks created")
-        print(f"   👨‍💼 {len(experts)} experts created") 
+        print(f"   📈 {len(new_stocks)} stocks created")
+        print(f"   👨‍💼 {len(new_experts)} experts created") 
         print(f"   ⭐ {len(ratings)} ratings created")
         print(f"   💬 {len(posts)} social posts created")
 
