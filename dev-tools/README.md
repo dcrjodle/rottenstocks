@@ -1,201 +1,219 @@
 # RottenStocks Dev Tools
 
-Development tools for testing and verification of the RottenStocks backend API.
+Development tools for testing and verification of the RottenStocks backend API with external integrations.
 
-## Setup
+## Quick Start
 
-1. Use the backend's virtual environment (all dependencies are already installed):
 ```bash
-cd ../backend
-source venv/bin/activate
-cd ../dev-tools
+# Start all services and activate environment
+cd backend && source venv/bin/activate && cd .. && docker-compose up -d postgres redis && cd backend && uvicorn app.main:app --reload --port 8000 &
+
+# Wait for services to start, then test Alpha Vantage integration
+sleep 5 && cd dev-tools && python api_query_tool.py alpha-vantage quote AAPL && python api_query_tool.py health
 ```
 
-2. Ensure the backend is running:
-```bash
-cd ../backend
-uvicorn app.main:app --reload
-```
+## Manual Testing Guide
 
-3. Ensure the database is running (via Docker):
+### 1. Start All Services
+
 ```bash
-cd ..
+# Start database and Redis
 docker-compose up -d postgres redis
+
+# Activate backend environment and start API server
+cd backend && source venv/bin/activate && uvicorn app.main:app --reload --port 8000
 ```
 
-## API Query Tool
+### 2. Verify External API Integration
 
-The `api_query_tool.py` provides a comprehensive interface for testing API endpoints and querying the database directly.
+Test Alpha Vantage integration to ensure external data is working:
 
-### Usage Examples
-
-#### Health Check
 ```bash
+cd dev-tools
+
+# Test Alpha Vantage API directly
+python api_query_tool.py alpha-vantage quote AAPL
+python api_query_tool.py alpha-vantage quote GOOGL
+python api_query_tool.py alpha-vantage quote TSLA
+
+# Test Alpha Vantage company overview
+python api_query_tool.py alpha-vantage overview AAPL
+```
+
+### 3. Verify Database Has Real Data
+
+```bash
+# Check if stocks exist in database
+python api_query_tool.py db stocks --limit 10
+
+# Create sample stocks with real data from Alpha Vantage
+python api_query_tool.py sample
+
+# Verify database statistics
+python api_query_tool.py db stats
+```
+
+### 4. Test Core API Endpoints
+
+```bash
+# Test health endpoint
 python api_query_tool.py health
+
+# Test stock endpoints
+python api_query_tool.py stocks list
+python api_query_tool.py stocks get AAPL
+
+# Test if API can fetch and return real stock data
+curl http://localhost:8000/api/v1/stocks/symbol/AAPL/quote
+curl http://localhost:8000/api/v1/stocks/symbol/GOOGL/quote
 ```
 
-#### Stock Operations
+### 5. End-to-End Alpha Vantage Validation
+
 ```bash
-# List stocks
+# Complete workflow to verify Alpha Vantage integration
+python api_query_tool.py alpha-vantage quote AAPL && \
+python api_query_tool.py stocks create --symbol AAPL --name "Apple Inc." --exchange NASDAQ --sector Technology --current-price 150.0 && \
+python api_query_tool.py stocks get AAPL && \
+curl -s http://localhost:8000/api/v1/stocks/symbol/AAPL/quote | jq .
+```
+
+## API Testing Commands
+
+### Stock Operations
+```bash
+# List all stocks
 python api_query_tool.py stocks list
 
-# List stocks with pagination and search
-python api_query_tool.py stocks list --page 2 --limit 5 --search Apple
-
-# Create a new stock
-python api_query_tool.py stocks create --symbol AAPL --name "Apple Inc." --exchange NASDAQ --sector Technology --current-price 150.0
+# Search for specific stocks
+python api_query_tool.py stocks list --search Apple
 
 # Get stock by symbol
 python api_query_tool.py stocks get AAPL
 
+# Create new stock
+python api_query_tool.py stocks create --symbol MSFT --name "Microsoft Corporation" --exchange NASDAQ --sector Technology --current-price 300.0
+
 # Update stock price
 python api_query_tool.py stocks price AAPL 155.0
-
-## Quick Demo
-
-For a comprehensive demonstration of all features:
-```bash
-python quick_demo.py
 ```
 
-This will run through all major functionality and show you what the tool can do.
-
-#### Rating Operations
+### Rating Operations
 ```bash
 # List all ratings
 python api_query_tool.py ratings list
 
-# List ratings for a specific stock
-python api_query_tool.py ratings list --stock-id <stock_id>
+# Create expert rating
+python api_query_tool.py ratings create --stock-id 1 --type expert --score 4.5 --recommendation buy --confidence 0.8
 
-# Create a new rating
-python api_query_tool.py ratings create --stock-id <stock_id> --type expert --score 4.5 --recommendation buy --confidence 0.8
-
-# Get rating aggregation for a stock
-python api_query_tool.py ratings aggregation <stock_id>
+# Get rating aggregation
+python api_query_tool.py ratings aggregation 1
 ```
 
-#### Database Operations
+### Database Operations
 ```bash
-# Get stocks directly from database
-python api_query_tool.py db stocks --limit 10
-
-# Get ratings directly from database
-python api_query_tool.py db ratings --limit 10
-
 # Get database statistics
 python api_query_tool.py db stats
 
-# Execute custom SQL query
+# Query stocks directly from database
+python api_query_tool.py db stocks --limit 10
+
+# Execute custom SQL
 python api_query_tool.py db query "SELECT symbol, name, current_price FROM stocks WHERE is_active = true"
 ```
 
-#### Sample Data Creation
+### External API Testing
 ```bash
-# Create sample stocks and ratings for testing
-python api_query_tool.py sample
+# Test Alpha Vantage quote data
+python api_query_tool.py alpha-vantage quote AAPL
+
+# Test Alpha Vantage company overview
+python api_query_tool.py alpha-vantage overview AAPL
+
+# Test multiple symbols
+python api_query_tool.py alpha-vantage quote AAPL && \
+python api_query_tool.py alpha-vantage quote GOOGL && \
+python api_query_tool.py alpha-vantage quote TSLA
 ```
 
-## Features
+## One-Command Testing Workflows
 
-### API Testing
-- Complete CRUD operations for stocks and ratings
-- Pagination and filtering support
-- Error handling with detailed HTTP status codes
-- JSON response formatting with syntax highlighting
+### Full Integration Test
+```bash
+# Test everything: services, external APIs, database, and core endpoints
+python api_query_tool.py health && \
+python api_query_tool.py alpha-vantage quote AAPL && \
+python api_query_tool.py sample && \
+python api_query_tool.py stocks list && \
+python api_query_tool.py db stats && \
+curl -s http://localhost:8000/api/v1/stocks/symbol/AAPL/quote | jq .
+```
 
-### Database Access
-- Direct database queries for verification
-- Statistics and analytics queries
-- Custom SQL execution
-- Connection pooling for performance
+### Quick Alpha Vantage Validation
+```bash
+# Verify Alpha Vantage integration is working
+python api_query_tool.py alpha-vantage quote AAPL && \
+python api_query_tool.py alpha-vantage overview AAPL && \
+echo "Alpha Vantage integration verified!"
+```
 
-### Data Display
-- Rich tables for structured data
-- JSON formatting with syntax highlighting
-- Color-coded output for better readability
-- Progress indicators and status messages
+### Database Verification
+```bash
+# Check database health and sample data
+python api_query_tool.py db stats && \
+python api_query_tool.py db stocks --limit 5 && \
+python api_query_tool.py db ratings --limit 5
+```
 
-### Sample Data
-- Automated creation of test stocks (AAPL, GOOGL, TSLA)
-- Sample ratings for different types (expert, popular)
-- Handles existing data gracefully
-- Verification of created data
+## Troubleshooting
+
+### Services Not Starting
+```bash
+# Check if ports are available
+lsof -i :8000  # API server
+lsof -i :5432  # PostgreSQL
+lsof -i :6379  # Redis
+
+# Restart services
+docker-compose down && docker-compose up -d postgres redis
+```
+
+### Alpha Vantage API Issues
+```bash
+# Test Alpha Vantage directly
+python api_query_tool.py alpha-vantage quote AAPL
+
+# Check if API key is configured
+grep -r "ALPHA_VANTAGE_API_KEY" ../backend/.env
+```
+
+### Database Connection Issues
+```bash
+# Test database connection
+python api_query_tool.py db stats
+
+# Check database is running
+docker-compose ps postgres
+```
+
+### API Endpoint Issues
+```bash
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Check API logs
+cd ../backend && tail -f logs/app.log
+```
 
 ## Configuration
 
-The tool uses the following default configuration:
-
+Default configuration:
 - **API Base URL**: `http://localhost:8000/api/v1`
 - **Database URL**: `postgresql://postgres:postgres@localhost:5432/rottenstocks`
-
-These can be modified in the script if your setup differs.
-
-## Workflow Examples
-
-### Complete Testing Workflow
-```bash
-# 1. Check API health
-python api_query_tool.py health
-
-# 2. Create sample data
-python api_query_tool.py sample
-
-# 3. Verify stocks were created
-python api_query_tool.py stocks list
-
-# 4. Check database directly
-python api_query_tool.py db stats
-
-# 5. Test rating aggregation
-python api_query_tool.py ratings aggregation <stock_id>
-
-# 6. Test search functionality
-python api_query_tool.py stocks list --search Apple
-```
-
-### Price Update Testing
-```bash
-# 1. Get current stock info
-python api_query_tool.py stocks get AAPL
-
-# 2. Update price
-python api_query_tool.py stocks price AAPL 160.0
-
-# 3. Verify update
-python api_query_tool.py stocks get AAPL
-```
-
-### Rating Analysis
-```bash
-# 1. List all ratings
-python api_query_tool.py ratings list
-
-# 2. Get aggregation for specific stock
-python api_query_tool.py ratings aggregation <stock_id>
-
-# 3. Check database ratings
-python api_query_tool.py db ratings
-```
-
-## Error Handling
-
-The tool provides detailed error messages for:
-- HTTP errors with status codes and response details
-- Database connection issues
-- Invalid parameters or missing data
-- Network connectivity problems
+- **Alpha Vantage API**: Configured via environment variables
 
 ## Dependencies
 
 - **httpx**: Async HTTP client for API requests
 - **asyncpg**: High-performance PostgreSQL adapter
 - **rich**: Beautiful terminal formatting and tables
-
-## Database Testing Tools
-
-This directory also contains the comprehensive database testing tools from previous development. See `database-testing/` directory for:
-- Interactive database shell
-- Query builder utilities
-- Health check scripts
-- Sample data generators

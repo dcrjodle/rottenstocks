@@ -20,6 +20,22 @@ This document tracks technical debt and maintenance tasks that need to be addres
 
 **Impact:** These test failures prevent reliable CI/CD deployment and could hide integration issues.
 
+#### [ ] Fix remaining external API tests
+**Priority:** Medium  
+**Estimated Effort:** 1-2 hours  
+**Description:** External APIs module has 91% test pass rate (52/57 tests passing). 5 tests remain failing after major fixes.
+
+**Specific Failing Tests (as of 2025-07-04):**
+1. `tests/external_apis/test_alpha_vantage_client.py::TestAlphaVantageClient::test_get_quote_invalid_format` - Client expecting exception, now gets error response
+2. `tests/external_apis/test_alpha_vantage_client.py::TestAlphaVantageClient::test_get_quote_empty_data` - Client expecting exception, now gets error response  
+3. `tests/external_apis/test_alpha_vantage_integration.py::test_get_daily_time_series_integration` - API response format changed (missing "4. Time Zone")
+4. `tests/external_apis/test_alpha_vantage_integration.py::test_service_get_overview_integration` - Service-level test issue
+5. `tests/external_apis/test_alpha_vantage_integration.py::test_service_caching_integration` - Caching functionality test issue
+
+**Impact:** These test failures don't block core functionality but affect confidence in external API integrations.
+
+**Notes:** Major improvements already implemented - fixed rate limiter tests, base client tests, and most Alpha Vantage integration tests. Remaining failures are edge cases and API format changes.
+
 **Files Affected:**
 - `tests/test_config.py` - Environment and CORS configuration tests
 - `tests/test_health_endpoints.py` - Health check endpoint tests

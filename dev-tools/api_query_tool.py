@@ -17,6 +17,7 @@ import argparse
 import asyncio
 import json
 import sys
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -26,6 +27,9 @@ from rich.console import Console
 from rich.table import Table
 from rich.json import JSON
 from rich.panel import Panel
+
+# Add the backend path for importing modules
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'backend'))
 
 # Configuration
 API_BASE_URL = "http://localhost:8000/api/v1"
@@ -182,6 +186,157 @@ class APIQueryTool:
         
         return stats
 
+    # Alpha Vantage Methods
+    async def alpha_vantage_quote(self, symbol: str) -> Dict[str, Any]:
+        """Get Alpha Vantage quote for a symbol."""
+        try:
+            from app.external_apis.providers import get_alpha_vantage_client
+            
+            client = get_alpha_vantage_client()
+            response = await client.get_quote(symbol)
+            
+            if response.success:
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "data": response.data.dict() if response.data else None
+                }
+            else:
+                return {
+                    "success": False,
+                    "symbol": symbol,
+                    "error": response.error.error_message if response.error else "Unknown error"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "symbol": symbol,
+                "error": str(e)
+            }
+    
+    async def alpha_vantage_overview(self, symbol: str) -> Dict[str, Any]:
+        """Get Alpha Vantage company overview for a symbol."""
+        try:
+            from app.external_apis.providers import get_alpha_vantage_client
+            
+            client = get_alpha_vantage_client()
+            response = await client.get_company_overview(symbol)
+            
+            if response.success:
+                return {
+                    "success": True,
+                    "symbol": symbol,
+                    "data": response.data.dict() if response.data else None
+                }
+            else:
+                return {
+                    "success": False,
+                    "symbol": symbol,
+                    "error": response.error.error_message if response.error else "Unknown error"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "symbol": symbol,
+                "error": str(e)
+            }
+    
+    async def alpha_vantage_search(self, keywords: str) -> Dict[str, Any]:
+        """Search Alpha Vantage for symbols."""
+        try:
+            from app.external_apis.providers import get_alpha_vantage_client
+            
+            client = get_alpha_vantage_client()
+            response = await client.search_symbols(keywords)
+            
+            if response.success:
+                return {
+                    "success": True,
+                    "keywords": keywords,
+                    "data": response.data.dict() if response.data else None
+                }
+            else:
+                return {
+                    "success": False,
+                    "keywords": keywords,
+                    "error": response.error.error_message if response.error else "Unknown error"
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "keywords": keywords,
+                "error": str(e)
+            }
+    
+    async def alpha_vantage_health(self) -> Dict[str, Any]:
+        """Check Alpha Vantage API health."""
+        try:
+            from app.external_apis.providers import get_alpha_vantage_client
+            
+            client = get_alpha_vantage_client()
+            return await client.health_check()
+        except Exception as e:
+            return {
+                "provider": "alpha_vantage",
+                "status": "unhealthy",
+                "error": str(e)
+            }
+    
+    async def alpha_vantage_rate_limits(self) -> Dict[str, Any]:
+        """Check Alpha Vantage rate limit status."""
+        try:
+            from app.external_apis.providers import get_rate_limiter_manager
+            
+            manager = get_rate_limiter_manager()
+            limiter = manager.get_alpha_vantage_limiter()
+            return await limiter.get_current_usage()
+        except Exception as e:
+            return {
+                "error": str(e)
+            }
+    
+    async def alpha_vantage_cache_stats(self) -> Dict[str, Any]:
+        """Get Alpha Vantage cache statistics."""
+        try:
+            from app.external_apis.providers import get_alpha_vantage_service
+            from app.db.session import get_db
+            
+            # This is a bit hacky for dev-tools, but works for testing
+            db = self.db_pool
+            service = get_alpha_vantage_service()
+            service.db = db  # Override with our pool connection
+            
+            return await service.get_cache_stats()
+        except Exception as e:
+            return {
+                "error": str(e)
+            }
+    
+    async def alpha_vantage_sync_stock(self, symbol: str) -> Dict[str, Any]:
+        """Sync a stock's data with Alpha Vantage."""
+        try:
+            from app.external_apis.providers import get_alpha_vantage_service
+            from app.db.session import get_db
+            
+            # This is a simplified version for dev-tools
+            db = self.db_pool
+            service = get_alpha_vantage_service()
+            service.db = db  # Override with our pool connection
+            
+            # Try to update stock price
+            success = await service.update_stock_price(symbol)
+            
+            return {
+                "symbol": symbol,
+                "price_update_success": success,
+                "timestamp": datetime.now().isoformat()
+            }
+        except Exception as e:
+            return {
+                "symbol": symbol,
+                "error": str(e)
+            }
+
     # Display Methods
     def display_json(self, data: Any, title: str = "Result"):
         """Display JSON data with syntax highlighting."""
@@ -333,6 +488,28 @@ async def main():
     # Sample data command
     parser_sample = subparsers.add_parser("sample", help="Create sample data")
     
+    # Alpha Vantage commands
+    parser_alpha = subparsers.add_parser("alpha-vantage", help="Alpha Vantage API operations")
+    alpha_subparsers = parser_alpha.add_subparsers(dest="alpha_action")
+    
+    alpha_quote_parser = alpha_subparsers.add_parser("quote", help="Get real-time quote")
+    alpha_quote_parser.add_argument("symbol", help="Stock symbol")
+    
+    alpha_overview_parser = alpha_subparsers.add_parser("overview", help="Get company overview")
+    alpha_overview_parser.add_argument("symbol", help="Stock symbol")
+    
+    alpha_search_parser = alpha_subparsers.add_parser("search", help="Search for symbols")
+    alpha_search_parser.add_argument("keywords", help="Search keywords")
+    
+    alpha_health_parser = alpha_subparsers.add_parser("health", help="Check Alpha Vantage API health")
+    
+    alpha_limits_parser = alpha_subparsers.add_parser("rate-limits", help="Check rate limit status")
+    
+    alpha_cache_parser = alpha_subparsers.add_parser("cache-stats", help="Get cache statistics")
+    
+    alpha_sync_parser = alpha_subparsers.add_parser("sync-stock", help="Sync stock data")
+    alpha_sync_parser.add_argument("symbol", help="Stock symbol")
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -402,6 +579,35 @@ async def main():
                 elif args.db_action == "query":
                     result = await tool.db_query(args.query)
                     tool.display_table(result, "Query Results")
+            
+            elif args.command == "alpha-vantage":
+                if args.alpha_action == "quote":
+                    result = await tool.alpha_vantage_quote(args.symbol)
+                    tool.display_json(result, f"Alpha Vantage Quote: {args.symbol}")
+                
+                elif args.alpha_action == "overview":
+                    result = await tool.alpha_vantage_overview(args.symbol)
+                    tool.display_json(result, f"Alpha Vantage Overview: {args.symbol}")
+                
+                elif args.alpha_action == "search":
+                    result = await tool.alpha_vantage_search(args.keywords)
+                    tool.display_json(result, f"Alpha Vantage Search: {args.keywords}")
+                
+                elif args.alpha_action == "health":
+                    result = await tool.alpha_vantage_health()
+                    tool.display_json(result, "Alpha Vantage Health Check")
+                
+                elif args.alpha_action == "rate-limits":
+                    result = await tool.alpha_vantage_rate_limits()
+                    tool.display_json(result, "Alpha Vantage Rate Limits")
+                
+                elif args.alpha_action == "cache-stats":
+                    result = await tool.alpha_vantage_cache_stats()
+                    tool.display_json(result, "Alpha Vantage Cache Statistics")
+                
+                elif args.alpha_action == "sync-stock":
+                    result = await tool.alpha_vantage_sync_stock(args.symbol)
+                    tool.display_json(result, f"Alpha Vantage Sync: {args.symbol}")
             
             elif args.command == "sample":
                 await create_sample_data(tool)
