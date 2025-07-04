@@ -32,10 +32,21 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import List
 
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from app.db.session import AsyncSessionLocal
+from sqlalchemy import create_engine, select
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+# Import models directly
 from app.db.models.stock import Stock
 from app.db.models.expert import Expert
 from app.db.models.rating import Rating, RatingType, RecommendationType
@@ -122,14 +133,25 @@ class SampleDataGenerator:
     
     def __init__(self):
         self.session = None
+        self.engine = None
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://postgres:postgres@localhost:5432/rottenstocks')
         
     async def __aenter__(self):
+        # Create async engine and session
+        self.engine = create_async_engine(self.database_url, echo=False)
+        AsyncSessionLocal = sessionmaker(
+            self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
         self.session = AsyncSessionLocal()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
+        if self.engine:
+            await self.engine.dispose()
     
     async def clear_database(self):
         """Clear all existing data."""

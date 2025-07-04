@@ -35,14 +35,25 @@ This folder provides simple tools for developers to test and interact with the R
 
 **Example Usage:**
 ```python
-# Create a new stock
-stock = create_stock("NVDA", "NVIDIA Corporation", "NASDAQ")
+# Simple data access (no await needed - data is pre-loaded for performance)
+stocks = get_stocks()
+experts = get_experts()
+ratings = get_ratings()
+posts = get_posts()
 
-# Find stocks by sector
-tech_stocks = find_stocks_by_sector("Technology")
+# Loop through data
+for stock in get_stocks():
+    print(stock.symbol, stock.current_price)
 
-# Get recent ratings
-recent_ratings = get_recent_ratings(days=7)
+# Filter data
+apple_stocks = [s for s in get_stocks() if s.symbol == 'AAPL']
+high_ratings = [r for r in get_ratings() if r.score >= 4.0]
+
+# Access model properties and relationships
+for rating in get_ratings():
+    print(f"{rating.stock.symbol}: {rating.score}/5 by {rating.expert.name}")
+
+# Note: Data is cached when shell starts. Restart to see latest changes.
 ```
 
 ### 2. Database Sample Data Generator (`generate_samples.py`)
@@ -157,32 +168,49 @@ Edit `config.py` to customize:
 ## 📚 API Reference
 
 ### Interactive Shell Functions
+
+**Simple Data Access (No await needed):**
+```python
+# Basic data retrieval
+get_stocks()          # Get all stocks
+get_experts()         # Get all experts  
+get_ratings()         # Get all ratings
+get_posts()           # Get all social posts
+query('SQL')          # Execute raw SQL queries
+
+# Example filtering and access
+stocks = get_stocks()
+apple = [s for s in stocks if s.symbol == 'AAPL'][0]
+tech_stocks = [s for s in stocks if s.sector == 'Technology']
+high_ratings = [r for r in get_ratings() if r.score >= 4.0]
+```
+
+**Advanced Database Operations (Require await - use in async context):**
 ```python
 # Stock operations
-create_stock(symbol, name, exchange, **kwargs)
-find_stock(symbol)
-find_stocks_by_sector(sector)
-update_stock_price(symbol, new_price)
+await db.create_stock(symbol, name, exchange, **kwargs)
+await db.find_stock(symbol)
+await db.find_stocks_by_sector(sector)
+await db.update_stock_price(symbol, new_price)
 
 # Expert operations
-create_expert(name, institution, **kwargs)
-verify_expert(expert_id)
-get_expert_ratings(expert_id)
+await db.create_expert(name, institution, **kwargs)
+await db.verify_expert(expert_id)
+await db.get_expert_ratings(expert_id)
 
 # Rating operations
-create_rating(stock_symbol, expert_name, score, recommendation)
-get_recent_ratings(days=30)
-get_ratings_by_score(min_score=4.0)
+await db.create_rating(stock_symbol, expert_name, score, recommendation)
+await db.get_recent_ratings(days=30)
+await db.get_ratings_by_score(min_score=4.0)
 
 # Social media operations
-create_social_post(stock_symbol, platform, content, **kwargs)
-analyze_sentiment(post_id)
-get_posts_by_sentiment(sentiment_type)
+await db.create_social_post(stock_symbol, platform, content, **kwargs)
+await db.analyze_sentiment(post_id)
+await db.get_posts_by_sentiment(sentiment_type)
 
 # Utility functions
-reset_database()  # WARNING: Deletes all data
-seed_sample_data()
-export_data(table_name, format='csv')
+await db.seed_sample_data()
+await db.get_database_stats()
 ```
 
 ### Query Templates

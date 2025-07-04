@@ -32,13 +32,22 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Dict, List, Any, Optional
 
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from sqlalchemy import select, func, desc, asc, and_, or_, text
+from sqlalchemy import select, func, desc, asc, and_, or_, text, create_engine
 from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
-from app.db.session import AsyncSessionLocal
+# Import models directly
 from app.db.models.stock import Stock
 from app.db.models.expert import Expert
 from app.db.models.rating import Rating, RatingType, RecommendationType
@@ -50,14 +59,25 @@ class QueryBuilder:
     
     def __init__(self):
         self.session = None
+        self.engine = None
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://postgres:postgres@localhost:5432/rottenstocks')
         
     async def __aenter__(self):
+        # Create async engine and session
+        self.engine = create_async_engine(self.database_url, echo=False)
+        AsyncSessionLocal = sessionmaker(
+            self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
         self.session = AsyncSessionLocal()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
+        if self.engine:
+            await self.engine.dispose()
     
     # ==================== QUERY TEMPLATES ====================
     

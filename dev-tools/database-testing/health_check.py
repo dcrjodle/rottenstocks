@@ -30,13 +30,23 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # If python-dotenv is not installed, just use system environment variables
+    pass
+
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from sqlalchemy import select, func, text, inspect
+from sqlalchemy import select, func, text, inspect, create_engine, or_, and_
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
-from app.db.session import AsyncSessionLocal
+# Import models directly without the app session
 from app.db.models.stock import Stock
 from app.db.models.expert import Expert
 from app.db.models.rating import Rating
@@ -48,8 +58,9 @@ class HealthCheck:
     
     def __init__(self):
         self.session = None
+        self.engine = None
         self.results = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'checks': [],
             'overall_status': 'UNKNOWN',
             'critical_issues': [],
@@ -57,13 +68,25 @@ class HealthCheck:
             'info': []
         }
         
+        # Get database URL from environment
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://postgres:password@localhost:5432/rottenstocks')
+        
     async def __aenter__(self):
+        # Create async engine and session
+        self.engine = create_async_engine(self.database_url, echo=False)
+        AsyncSessionLocal = sessionmaker(
+            self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
         self.session = AsyncSessionLocal()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
+        if self.engine:
+            await self.engine.dispose()
     
     def add_check(self, name: str, status: str, details: str = "", 
                   duration: float = 0.0, data: Any = None):
@@ -300,7 +323,7 @@ class HealthCheck:
             # Check for future dates
             future_ratings = await self.session.scalar(
                 select(func.count(Rating.id))
-                .where(Rating.rating_date > datetime.utcnow())
+                .where(Rating.rating_date > datetime.now())
             )
             if future_ratings > 0:
                 issues.append(f"{future_ratings} ratings with future dates")
@@ -339,7 +362,7 @@ class HealthCheck:
         """Check for recent activity in the database."""
         start_time = time.time()
         try:
-            cutoff_date = datetime.utcnow() - timedelta(days=days)
+            cutoff_date = datetime.now() - timedelta(days=days)
             
             recent_ratings = await self.session.scalar(
                 select(func.count(Rating.id))

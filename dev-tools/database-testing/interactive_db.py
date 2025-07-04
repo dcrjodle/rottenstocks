@@ -22,14 +22,22 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 from typing import List, Optional
 
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 # Add backend to path so we can import models
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from sqlalchemy import select, func, desc, and_, or_
+from sqlalchemy import select, func, desc, and_, or_, create_engine
 from sqlalchemy.orm import selectinload
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
+from sqlalchemy.orm import sessionmaker
 
-# Import all models and database components
-from app.db.session import AsyncSessionLocal
+# Import models directly
 from app.db.models.stock import Stock
 from app.db.models.expert import Expert
 from app.db.models.rating import Rating, RatingType, RecommendationType
@@ -41,14 +49,25 @@ class DatabaseShell:
     
     def __init__(self):
         self.session = None
+        self.engine = None
+        self.database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://postgres:postgres@localhost:5432/rottenstocks')
         
     async def __aenter__(self):
+        # Create async engine and session
+        self.engine = create_async_engine(self.database_url, echo=False)
+        AsyncSessionLocal = sessionmaker(
+            self.engine,
+            class_=AsyncSession,
+            expire_on_commit=False
+        )
         self.session = AsyncSessionLocal()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.session:
             await self.session.close()
+        if self.engine:
+            await self.engine.dispose()
     
     # ==================== STOCK OPERATIONS ====================
     
@@ -335,6 +354,33 @@ class DatabaseShell:
         
         await self.session.commit()
         print("✅ Sample data created successfully!")
+    
+    # Helper methods for sync wrappers
+    async def _get_stocks_sync(self):
+        """Helper to get all stocks"""
+        result = await self.session.execute(select(Stock))
+        return result.scalars().all()
+    
+    async def _get_experts_sync(self):
+        """Helper to get all experts"""
+        result = await self.session.execute(select(Expert))
+        return result.scalars().all()
+    
+    async def _get_ratings_sync(self):
+        """Helper to get all ratings"""
+        result = await self.session.execute(select(Rating))
+        return result.scalars().all()
+    
+    async def _get_posts_sync(self):
+        """Helper to get all social posts"""
+        result = await self.session.execute(select(SocialPost))
+        return result.scalars().all()
+    
+    async def _execute_query_sync(self, sql_text):
+        """Helper to execute raw SQL"""
+        from sqlalchemy import text
+        result = await self.session.execute(text(sql_text))
+        return result.fetchall()
 
 
 async def interactive_session():
@@ -347,10 +393,49 @@ async def interactive_session():
         await db.get_database_stats()
         print()
         
+        # Pre-fetch data once to avoid async issues in interactive console
+        _stocks_cache = await db._get_stocks_sync()
+        _experts_cache = await db._get_experts_sync()
+        _ratings_cache = await db._get_ratings_sync()
+        _posts_cache = await db._get_posts_sync()
+        
+        def get_stocks():
+            """Get all stocks from database (cached)"""
+            return _stocks_cache
+        
+        def get_experts():
+            """Get all experts from database (cached)"""
+            return _experts_cache
+        
+        def get_ratings():
+            """Get all ratings from database (cached)"""
+            return _ratings_cache
+        
+        def get_posts():
+            """Get all social posts from database (cached)"""
+            return _posts_cache
+        
+        def refresh_data():
+            """Refresh cached data - use this after making changes"""
+            print("Note: To refresh data, restart the interactive shell")
+            print("      (The console is read-only to avoid async issues)")
+        
+        def query(sql_text):
+            """Execute raw SQL query (limited functionality in interactive mode)"""
+            print(f"SQL Query: {sql_text}")
+            print("Note: Use query_builder.py for executing SQL queries")
+            print("      Interactive mode focuses on data exploration")
+        
         # Make common objects available in global scope
         globals().update({
             'db': db,
             'session': db.session,
+            'get_stocks': get_stocks,
+            'get_experts': get_experts,
+            'get_ratings': get_ratings,
+            'get_posts': get_posts,
+            'refresh_data': refresh_data,
+            'query': query,
             'Stock': Stock,
             'Expert': Expert,
             'Rating': Rating,
@@ -372,24 +457,25 @@ async def interactive_session():
         print("📋 Available objects and functions:")
         print("  • db - Database shell with helper methods")
         print("  • session - SQLAlchemy async session")
+        print("  • get_stocks(), get_experts(), get_ratings(), get_posts() - Data access (cached)")
+        print("  • refresh_data() - Info about refreshing cached data")
         print("  • Stock, Expert, Rating, SocialPost - Model classes")
         print("  • RatingType, RecommendationType, Platform, SentimentType - Enums")
         print("  • select, func, desc, and_, or_ - SQLAlchemy query functions")
         print("  • Decimal, datetime, timedelta - Utility classes")
         print()
-        print("🔧 Helper methods (use with await):")
-        print("  • await db.create_stock('NVDA', 'NVIDIA Corp', 'NASDAQ')")
-        print("  • await db.find_stock('AAPL')")
-        print("  • await db.create_expert('Alice Johnson', 'JP Morgan')")
-        print("  • await db.create_rating('AAPL', 'Alice Johnson', 4.5, 'buy')")
-        print("  • await db.get_recent_ratings(7)")
-        print("  • await db.seed_sample_data()")
-        print("  • await db.get_database_stats()")
+        print("🔧 Quick data exploration (data is pre-loaded):")
+        print("  • stocks = get_stocks()")
+        print("  • experts = get_experts()")
+        print("  • ratings = get_ratings()")
+        print("  • posts = get_posts()")
         print()
-        print("💡 Example queries:")
-        print("  • stocks = await session.execute(select(Stock))")
-        print("  • tech_stocks = await db.find_stocks_by_sector('Technology')")
-        print("  • high_ratings = await db.get_ratings_by_score(4.0)")
+        print("💡 Example usage:")
+        print("  • for stock in get_stocks(): print(stock.symbol, stock.current_price)")
+        print("  • apple = [s for s in get_stocks() if s.symbol == 'AAPL'][0]")
+        print("  • high_ratings = [r for r in get_ratings() if r.score >= 4.0]")
+        print()
+        print("ℹ️  Note: Data is cached for performance. Restart shell to see latest changes.")
         print()
         print("Type 'exit()' or Ctrl+C to quit")
         print("=" * 50)
