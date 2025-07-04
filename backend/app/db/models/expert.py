@@ -5,7 +5,7 @@ Represents financial experts, analysts, and institutions that provide
 professional stock ratings and recommendations.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 
 from sqlalchemy import Boolean, DateTime, Index, String, Text
@@ -219,7 +219,82 @@ class Expert(BaseModel):
     def verify(self) -> None:
         """Mark expert as verified."""
         self.is_verified = True
-        self.verification_date = datetime.utcnow()
+        self.verification_date = datetime.now(timezone.utc)
+    
+    # Upsert and utility methods
+    
+    @classmethod
+    async def get_or_create(
+        cls,
+        session,
+        email: str,
+        defaults: Optional[dict] = None,
+        **kwargs
+    ) -> tuple["Expert", bool]:
+        """
+        Get existing expert or create new one.
+        
+        Args:
+            session: Database session
+            email: Expert email (unique constraint)
+            defaults: Default values for creation
+            **kwargs: Additional query parameters
+        
+        Returns:
+            Tuple of (expert_instance, created_flag)
+        """
+        from ..utils import get_or_create
+        
+        return await get_or_create(
+            session=session,
+            model_class=cls,
+            defaults=defaults,
+            email=email.lower(),
+            **kwargs
+        )
+    
+    @classmethod
+    async def upsert(
+        cls,
+        session,
+        email: str,
+        **kwargs
+    ) -> "Expert":
+        """
+        Insert or update expert.
+        
+        Args:
+            session: Database session
+            email: Expert email (unique constraint)
+            **kwargs: Expert data
+        
+        Returns:
+            Expert instance
+        """
+        from ..utils import upsert_query
+        
+        data = {"email": email.lower(), **kwargs}
+        
+        stmt = upsert_query(
+            table=cls.__table__,
+            constraint_columns=["email"],
+            **data
+        )
+        
+        result = await session.execute(stmt)
+        row = result.fetchone()
+        
+        if row:
+            # Convert row to model instance
+            instance_data = dict(row._mapping)
+            return cls(**instance_data)
+        else:
+            # Fallback to regular query
+            from sqlalchemy import select
+            result = await session.execute(
+                select(cls).where(cls.email == email.lower())
+            )
+            return result.scalar_one()
     
     def __repr__(self) -> str:
         return f"<Expert(name='{self.name}', institution='{self.institution}', verified={self.is_verified})>"

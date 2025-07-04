@@ -5,7 +5,7 @@ Represents individual stocks with market data, ratings, and relationships
 to other entities in the system.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -189,7 +189,82 @@ class Stock(BaseModel):
             self.day_low = day_low
         if volume is not None:
             self.volume = volume
-        self.last_updated = datetime.utcnow()
+        self.last_updated = datetime.now(timezone.utc)
+    
+    # Upsert and utility methods
+    
+    @classmethod
+    async def get_or_create(
+        cls,
+        session,
+        symbol: str,
+        defaults: Optional[dict] = None,
+        **kwargs
+    ) -> tuple["Stock", bool]:
+        """
+        Get existing stock or create new one.
+        
+        Args:
+            session: Database session
+            symbol: Stock symbol
+            defaults: Default values for creation
+            **kwargs: Additional query parameters
+        
+        Returns:
+            Tuple of (stock_instance, created_flag)
+        """
+        from ..utils import get_or_create
+        
+        return await get_or_create(
+            session=session,
+            model_class=cls,
+            defaults=defaults,
+            symbol=symbol.upper(),
+            **kwargs
+        )
+    
+    @classmethod
+    async def upsert(
+        cls,
+        session,
+        symbol: str,
+        **kwargs
+    ) -> "Stock":
+        """
+        Insert or update stock.
+        
+        Args:
+            session: Database session
+            symbol: Stock symbol (unique constraint)
+            **kwargs: Stock data
+        
+        Returns:
+            Stock instance
+        """
+        from ..utils import upsert_query
+        
+        data = {"symbol": symbol.upper(), **kwargs}
+        
+        stmt = upsert_query(
+            table=cls.__table__,
+            constraint_columns=["symbol"],
+            **data
+        )
+        
+        result = await session.execute(stmt)
+        row = result.fetchone()
+        
+        if row:
+            # Convert row to model instance
+            instance_data = dict(row._mapping)
+            return cls(**instance_data)
+        else:
+            # Fallback to regular query
+            from sqlalchemy import select
+            result = await session.execute(
+                select(cls).where(cls.symbol == symbol.upper())
+            )
+            return result.scalar_one()
     
     def __repr__(self) -> str:
         return f"<Stock(symbol='{self.symbol}', name='{self.name}', price={self.current_price})>"

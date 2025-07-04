@@ -5,7 +5,7 @@ Represents social media posts from Reddit, Twitter, and other platforms
 that mention stocks, with sentiment analysis and engagement metrics.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 from typing import Optional
@@ -307,7 +307,7 @@ class SocialPost(BaseModel):
         else:
             self.sentiment_type = SentimentType.VERY_NEGATIVE
         
-        self.analyzed_at = analyzed_at or datetime.utcnow()
+        self.analyzed_at = analyzed_at or datetime.now(timezone.utc)
     
     def update_engagement(
         self,
@@ -328,6 +328,81 @@ class SocialPost(BaseModel):
             self.comment_count = comment_count
         if share_count is not None:
             self.share_count = share_count
+    
+    # Upsert and utility methods
+    
+    @classmethod
+    async def get_or_create(
+        cls,
+        session,
+        platform_post_id: str,
+        defaults: Optional[dict] = None,
+        **kwargs
+    ) -> tuple["SocialPost", bool]:
+        """
+        Get existing social post or create new one.
+        
+        Args:
+            session: Database session
+            platform_post_id: Platform-specific post ID (unique constraint)
+            defaults: Default values for creation
+            **kwargs: Additional query parameters
+        
+        Returns:
+            Tuple of (social_post_instance, created_flag)
+        """
+        from ..utils import get_or_create
+        
+        return await get_or_create(
+            session=session,
+            model_class=cls,
+            defaults=defaults,
+            platform_post_id=platform_post_id,
+            **kwargs
+        )
+    
+    @classmethod
+    async def upsert(
+        cls,
+        session,
+        platform_post_id: str,
+        **kwargs
+    ) -> "SocialPost":
+        """
+        Insert or update social post.
+        
+        Args:
+            session: Database session
+            platform_post_id: Platform-specific post ID (unique constraint)
+            **kwargs: Social post data
+        
+        Returns:
+            SocialPost instance
+        """
+        from ..utils import upsert_query
+        
+        data = {"platform_post_id": platform_post_id, **kwargs}
+        
+        stmt = upsert_query(
+            table=cls.__table__,
+            constraint_columns=["platform_post_id"],
+            **data
+        )
+        
+        result = await session.execute(stmt)
+        row = result.fetchone()
+        
+        if row:
+            # Convert row to model instance
+            instance_data = dict(row._mapping)
+            return cls(**instance_data)
+        else:
+            # Fallback to regular query
+            from sqlalchemy import select
+            result = await session.execute(
+                select(cls).where(cls.platform_post_id == platform_post_id)
+            )
+            return result.scalar_one()
     
     def __repr__(self) -> str:
         stock_symbol = self.stock.symbol if self.stock else "Unknown"

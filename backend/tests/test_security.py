@@ -7,6 +7,7 @@ Tests JWT token management, password hashing, and authentication.
 import pytest
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
+from unittest.mock import patch
 
 from app.core.security import (
     create_access_token,
@@ -17,13 +18,45 @@ from app.core.security import (
     generate_api_key,
     validate_api_key,
 )
-from app.core.config import get_settings
+from app.core.config import get_settings, Settings
+
+
+@pytest.fixture
+def mock_test_settings():
+    """Create test settings and mock get_settings."""
+    import os
+    from unittest.mock import patch
+    
+    # Create temporary Settings class with no env_file
+    class TestSettings(Settings):
+        class Config:
+            env_file = None
+            case_sensitive = True
+            extra = "ignore"
+    
+    # Set up test environment variables
+    test_env = {
+        'TESTING': 'true',
+        'SECRET_KEY': 'test-secret-key-not-for-production',
+        'ACCESS_TOKEN_EXPIRE_MINUTES': '30',
+        'REFRESH_TOKEN_EXPIRE_DAYS': '30',
+        'REDDIT_CLIENT_ID': 'test_reddit_client_id',
+        'REDDIT_CLIENT_SECRET': 'test_reddit_client_secret',
+        'REDDIT_USER_AGENT': 'TestBot/1.0',
+        'ALPHA_VANTAGE_API_KEY': 'test_alpha_vantage_key',
+        'GOOGLE_GEMINI_API_KEY': 'test_gemini_key',
+    }
+    
+    with patch.dict(os.environ, test_env, clear=True):
+        test_settings = TestSettings()
+        with patch('app.core.security.get_settings', return_value=test_settings):
+            yield test_settings
 
 
 class TestJWTTokens:
     """Test JWT token creation and verification."""
     
-    def test_create_access_token(self):
+    def test_create_access_token(self, mock_test_settings):
         """Test access token creation."""
         user_id = "test_user_123"
         token = create_access_token(user_id)
@@ -32,7 +65,7 @@ class TestJWTTokens:
         assert len(token) > 0
         
         # Decode and verify token structure
-        settings = get_settings()
+        settings = mock_test_settings
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         
         assert payload["sub"] == user_id
@@ -42,7 +75,7 @@ class TestJWTTokens:
         # Check expiration is set correctly
         exp_timestamp = payload["exp"]
         exp_datetime = datetime.fromtimestamp(exp_timestamp)
-        now = datetime.utcnow()
+        now = datetime.now()  # Use local time to match JWT interpretation
         
         # Should expire in approximately ACCESS_TOKEN_EXPIRE_MINUTES
         time_diff = exp_datetime - now
@@ -51,25 +84,25 @@ class TestJWTTokens:
         # Allow 1 minute tolerance
         assert abs(time_diff.total_seconds() - expected_diff.total_seconds()) < 60
     
-    def test_create_access_token_custom_expiry(self):
+    def test_create_access_token_custom_expiry(self, mock_test_settings):
         """Test access token creation with custom expiry."""
         user_id = "test_user_123"
         custom_expiry = timedelta(hours=2)
         token = create_access_token(user_id, expires_delta=custom_expiry)
         
-        settings = get_settings()
+        settings = mock_test_settings
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         
         exp_timestamp = payload["exp"]
         exp_datetime = datetime.fromtimestamp(exp_timestamp)
-        now = datetime.utcnow()
+        now = datetime.now()  # Use local time to match JWT interpretation
         
         time_diff = exp_datetime - now
         
         # Should expire in approximately 2 hours
         assert abs(time_diff.total_seconds() - custom_expiry.total_seconds()) < 60
     
-    def test_create_refresh_token(self):
+    def test_create_refresh_token(self, mock_test_settings):
         """Test refresh token creation."""
         user_id = "test_user_123"
         token = create_refresh_token(user_id)
@@ -77,7 +110,7 @@ class TestJWTTokens:
         assert isinstance(token, str)
         assert len(token) > 0
         
-        settings = get_settings()
+        settings = mock_test_settings
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         
         assert payload["sub"] == user_id
@@ -87,7 +120,7 @@ class TestJWTTokens:
         # Check expiration is set correctly for refresh token
         exp_timestamp = payload["exp"]
         exp_datetime = datetime.fromtimestamp(exp_timestamp)
-        now = datetime.utcnow()
+        now = datetime.now()  # Use local time to match JWT interpretation
         
         time_diff = exp_datetime - now
         expected_diff = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
@@ -95,7 +128,7 @@ class TestJWTTokens:
         # Allow 1 hour tolerance for refresh tokens
         assert abs(time_diff.total_seconds() - expected_diff.total_seconds()) < 3600
     
-    def test_verify_token_valid(self):
+    def test_verify_token_valid(self, mock_test_settings):
         """Test token verification with valid token."""
         user_id = "test_user_123"
         token = create_access_token(user_id)
@@ -107,7 +140,7 @@ class TestJWTTokens:
         assert token_data.type == "access"
         assert token_data.exp is not None
     
-    def test_verify_token_invalid(self):
+    def test_verify_token_invalid(self, mock_test_settings):
         """Test token verification with invalid token."""
         invalid_token = "invalid.token.here"
         
@@ -115,7 +148,7 @@ class TestJWTTokens:
         
         assert token_data is None
     
-    def test_verify_token_expired(self):
+    def test_verify_token_expired(self, mock_test_settings):
         """Test token verification with expired token."""
         user_id = "test_user_123"
         # Create token that expires immediately
@@ -125,7 +158,7 @@ class TestJWTTokens:
         
         assert token_data is None
     
-    def test_verify_token_wrong_secret(self):
+    def test_verify_token_wrong_secret(self, mock_test_settings):
         """Test token verification with wrong secret key."""
         user_id = "test_user_123"
         

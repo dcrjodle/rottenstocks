@@ -5,7 +5,7 @@ Provides JWT token management, password hashing, and security utilities
 following FastAPI security best practices.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional, Union
 
 from jose import JWTError, jwt
@@ -14,8 +14,6 @@ from pydantic import ValidationError
 
 from app.core.config import get_settings
 from app.schemas.token import TokenPayload
-
-settings = get_settings()
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -26,10 +24,11 @@ def create_access_token(
     expires_delta: Optional[timedelta] = None
 ) -> str:
     """Create a JWT access token."""
+    settings = get_settings()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
         )
     
@@ -47,10 +46,11 @@ def create_refresh_token(
     expires_delta: Optional[timedelta] = None
 ) -> str:
     """Create a JWT refresh token."""
+    settings = get_settings()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(
+        expire = datetime.now(timezone.utc) + timedelta(
             days=settings.REFRESH_TOKEN_EXPIRE_DAYS
         )
     
@@ -65,6 +65,7 @@ def create_refresh_token(
 
 def verify_token(token: str) -> Optional[TokenPayload]:
     """Verify and decode a JWT token."""
+    settings = get_settings()
     try:
         payload = jwt.decode(
             token, 
@@ -96,4 +97,6 @@ def generate_api_key() -> str:
 def validate_api_key(api_key: str) -> bool:
     """Validate an API key format."""
     # Basic validation - can be enhanced with database lookup
-    return len(api_key) >= 32 and api_key.isalnum()
+    # Allow URL-safe base64 characters (letters, digits, hyphens, underscores)
+    import re
+    return len(api_key) >= 32 and re.match(r'^[A-Za-z0-9_-]+$', api_key) is not None

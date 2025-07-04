@@ -35,9 +35,16 @@ class TestSettings:
     
     def test_required_fields_missing(self):
         """Test that missing required fields raise validation errors."""
+        # Create a temporary Settings class with no env_file
+        class TestSettings(Settings):
+            class Config:
+                env_file = None
+                case_sensitive = True
+                extra = "ignore"
+        
         with patch.dict(os.environ, {}, clear=True):
             with pytest.raises(Exception):  # ValidationError from pydantic
-                Settings()
+                TestSettings()
     
     def test_required_fields_present(self):
         """Test that all required fields can be set."""
@@ -59,23 +66,30 @@ class TestSettings:
             assert settings.GOOGLE_GEMINI_API_KEY == 'test_gemini_key'
     
     def test_cors_origins_parsing(self):
-        """Test CORS origins parsing from string."""
+        """Test CORS origins parsing from JSON string."""
+        # Create a temporary Settings class with no env_file
+        class TestSettings(Settings):
+            class Config:
+                env_file = None
+                case_sensitive = True
+                extra = "ignore"
+        
         env_vars = {
             'REDDIT_CLIENT_ID': 'test_id',
             'REDDIT_CLIENT_SECRET': 'test_secret',
             'REDDIT_USER_AGENT': 'TestBot/1.0',
             'ALPHA_VANTAGE_API_KEY': 'test_av_key',
             'GOOGLE_GEMINI_API_KEY': 'test_gemini_key',
-            'BACKEND_CORS_ORIGINS': 'http://localhost:3000,http://localhost:5173',
+            'BACKEND_CORS_ORIGINS': '["http://localhost:3000", "http://localhost:5173"]',
         }
         
         with patch.dict(os.environ, env_vars, clear=True):
-            settings = Settings()
+            settings = TestSettings()
             cors_origins = settings.get_cors_origins()
             
             assert len(cors_origins) == 2
-            assert 'http://localhost:3000' in cors_origins
-            assert 'http://localhost:5173' in cors_origins
+            assert 'http://localhost:3000/' in cors_origins
+            assert 'http://localhost:5173/' in cors_origins
     
     def test_database_url_assembly(self):
         """Test database URL assembly from components."""
@@ -123,6 +137,13 @@ class TestSettings:
     
     def test_environment_properties(self):
         """Test environment detection properties."""
+        # Create a temporary Settings class with no env_file
+        class TestSettings(Settings):
+            class Config:
+                env_file = None
+                case_sensitive = True
+                extra = "ignore"
+        
         env_vars = {
             'REDDIT_CLIENT_ID': 'test_id',
             'REDDIT_CLIENT_SECRET': 'test_secret',
@@ -133,21 +154,21 @@ class TestSettings:
         
         # Test development
         with patch.dict(os.environ, {**env_vars, 'ENVIRONMENT': 'development'}, clear=True):
-            settings = Settings()
+            settings = TestSettings()
             assert settings.is_development is True
             assert settings.is_production is False
             assert settings.is_testing is False
         
         # Test production
         with patch.dict(os.environ, {**env_vars, 'ENVIRONMENT': 'production'}, clear=True):
-            settings = Settings()
+            settings = TestSettings()
             assert settings.is_development is False
             assert settings.is_production is True
             assert settings.is_testing is False
         
         # Test testing
         with patch.dict(os.environ, {**env_vars, 'TESTING': 'true'}, clear=True):
-            settings = Settings()
+            settings = TestSettings()
             assert settings.is_development is False
             assert settings.is_production is False
             assert settings.is_testing is True

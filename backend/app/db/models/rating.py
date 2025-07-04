@@ -5,7 +5,7 @@ Represents both expert and aggregated popular ratings for stocks,
 including historical data and sentiment analysis.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum as PyEnum
 from typing import Optional
@@ -223,7 +223,106 @@ class Rating(BaseModel):
         if analysis is not None:
             self.analysis = analysis
         
-        self.last_updated = datetime.utcnow()
+        self.last_updated = datetime.now(timezone.utc)
+    
+    # Upsert and utility methods
+    
+    @classmethod
+    async def get_or_create(
+        cls,
+        session,
+        stock_id: str,
+        expert_id: Optional[str],
+        rating_date: datetime,
+        defaults: Optional[dict] = None,
+        **kwargs
+    ) -> tuple["Rating", bool]:
+        """
+        Get existing rating or create new one.
+        
+        Args:
+            session: Database session
+            stock_id: Stock ID
+            expert_id: Expert ID (None for popular ratings)
+            rating_date: Rating date
+            defaults: Default values for creation
+            **kwargs: Additional query parameters
+        
+        Returns:
+            Tuple of (rating_instance, created_flag)
+        """
+        from ..utils import get_or_create
+        
+        return await get_or_create(
+            session=session,
+            model_class=cls,
+            defaults=defaults,
+            stock_id=stock_id,
+            expert_id=expert_id,
+            rating_date=rating_date,
+            **kwargs
+        )
+    
+    @classmethod
+    async def upsert(
+        cls,
+        session,
+        stock_id: str,
+        expert_id: Optional[str],
+        rating_date: datetime,
+        **kwargs
+    ) -> "Rating":
+        """
+        Insert or update rating.
+        
+        Args:
+            session: Database session
+            stock_id: Stock ID
+            expert_id: Expert ID (None for popular ratings)
+            rating_date: Rating date
+            **kwargs: Rating data
+        
+        Returns:
+            Rating instance
+        """
+        from ..utils import upsert_query
+        
+        data = {
+            "stock_id": stock_id,
+            "expert_id": expert_id,
+            "rating_date": rating_date,
+            **kwargs
+        }
+        
+        stmt = upsert_query(
+            table=cls.__table__,
+            constraint_columns=["stock_id", "expert_id", "rating_date"],
+            **data
+        )
+        
+        result = await session.execute(stmt)
+        row = result.fetchone()
+        
+        if row:
+            # Convert row to model instance
+            instance_data = dict(row._mapping)
+            return cls(**instance_data)
+        else:
+            # Fallback to regular query
+            from sqlalchemy import select, and_
+            conditions = [
+                cls.stock_id == stock_id,
+                cls.rating_date == rating_date
+            ]
+            if expert_id is not None:
+                conditions.append(cls.expert_id == expert_id)
+            else:
+                conditions.append(cls.expert_id.is_(None))
+            
+            result = await session.execute(
+                select(cls).where(and_(*conditions))
+            )
+            return result.scalar_one()
     
     def __repr__(self) -> str:
         expert_name = self.expert.name if self.expert else "Popular"

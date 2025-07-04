@@ -76,16 +76,19 @@ def create_application() -> FastAPI:
     # Add exception handlers
     setup_exception_handlers(app)
     
-    # Add health check endpoint
+    # Add basic health endpoint at root level
     @app.get("/health")
-    async def health_check() -> dict:
-        """Health check endpoint."""
+    async def basic_health_check(request: Request) -> dict:
+        """Basic health check endpoint at root level."""
+        from app.api.v1.endpoints.health import _start_time
         return {
             "status": "healthy",
             "service": settings.PROJECT_NAME,
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
             "timestamp": time.time(),
+            "uptime": time.time() - _start_time,
+            "correlation_id": getattr(request.state, "correlation_id", "unknown"),
         }
     
     return app

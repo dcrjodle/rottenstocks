@@ -30,23 +30,16 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
-# Try to load environment variables from .env file
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    # If python-dotenv is not installed, just use system environment variables
-    pass
-
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from sqlalchemy import select, func, text, inspect, create_engine, or_, and_
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+# Import new database utilities
+from app.db.utils import DatabaseManager
+from app.db.config import get_database_config
+from app.db.exceptions import DatabaseError, handle_database_error
+from app.db.repositories import StockRepository, ExpertRepository, RatingRepository, SocialPostRepository
 
-# Import models directly without the app session
+# Import models for type checking
 from app.db.models.stock import Stock
 from app.db.models.expert import Expert
 from app.db.models.rating import Rating
@@ -54,11 +47,10 @@ from app.db.models.social_post import SocialPost
 
 
 class HealthCheck:
-    """Database health check and diagnostics tool."""
+    """Database health check and diagnostics tool using new database utilities."""
     
     def __init__(self):
-        self.session = None
-        self.engine = None
+        self.db_manager = None
         self.results = {
             'timestamp': datetime.now().isoformat(),
             'checks': [],
@@ -68,25 +60,21 @@ class HealthCheck:
             'info': []
         }
         
-        # Get database URL from environment
-        self.database_url = os.getenv('DATABASE_URL', 'postgresql+asyncpg://postgres:password@localhost:5432/rottenstocks')
+        # Get database configuration using new utilities
+        self.db_config = get_database_config()
         
     async def __aenter__(self):
-        # Create async engine and session
-        self.engine = create_async_engine(self.database_url, echo=False)
-        AsyncSessionLocal = sessionmaker(
-            self.engine,
-            class_=AsyncSession,
-            expire_on_commit=False
+        # Create database manager using new utilities
+        self.db_manager = DatabaseManager(
+            self.db_config.database_url,
+            **self.db_config.get_engine_kwargs()
         )
-        self.session = AsyncSessionLocal()
+        await self.db_manager.initialize()
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
-        if self.engine:
-            await self.engine.dispose()
+        if self.db_manager:
+            await self.db_manager.shutdown()
     
     def add_check(self, name: str, status: str, details: str = "", 
                   duration: float = 0.0, data: Any = None):
@@ -108,24 +96,46 @@ class HealthCheck:
             self.results['info'].append(f"{name}: {details}")
     
     async def check_connection(self) -> bool:
-        """Test basic database connectivity."""
+        """Test basic database connectivity using new utilities."""
         start_time = time.time()
         try:
-            await self.session.execute(text("SELECT 1"))
+            # Use the database manager's health check
+            health_result = await self.db_manager.health_check()
             duration = time.time() - start_time
-            self.add_check(
-                "Database Connection",
-                "PASS",
-                "Successfully connected to database",
-                duration
-            )
-            return True
-        except Exception as e:
+            
+            if health_result["status"] == "healthy":
+                self.add_check(
+                    "Database Connection",
+                    "PASS", 
+                    "Successfully connected to database using DatabaseManager",
+                    duration,
+                    health_result
+                )
+                return True
+            else:
+                self.add_check(
+                    "Database Connection",
+                    "CRITICAL",
+                    f"Database health check failed: {health_result.get('error', 'Unknown error')}",
+                    duration,
+                    health_result
+                )
+                return False
+        except DatabaseError as e:
             duration = time.time() - start_time
             self.add_check(
                 "Database Connection",
                 "CRITICAL",
-                f"Failed to connect: {e}",
+                f"Database error: {e.message}",
+                duration
+            )
+            return False
+        except Exception as e:
+            duration = time.time() - start_time
+            self.add_check(
+                "Database Connection", 
+                "CRITICAL",
+                f"Unexpected error: {handle_database_error(e).message}",
                 duration
             )
             return False
@@ -177,20 +187,11 @@ class HealthCheck:
             return False
     
     async def check_data_counts(self) -> Dict[str, int]:
-        """Check record counts in all tables."""
+        """Check record counts in all tables using new utilities."""
         start_time = time.time()
         try:
-            counts = {}
-            models = [
-                (Stock, 'stocks'),
-                (Expert, 'experts'),
-                (Rating, 'ratings'),
-                (SocialPost, 'social_posts')
-            ]
-            
-            for model, name in models:
-                count = await self.session.scalar(select(func.count(model.id)))
-                counts[name] = count or 0
+            # Use the database manager's table stats method
+            counts = await self.db_manager.get_table_stats()
             
             duration = time.time() - start_time
             total_records = sum(counts.values())
@@ -199,13 +200,13 @@ class HealthCheck:
                 self.add_check(
                     "Data Count",
                     "PASS",
-                    f"Found {total_records} total records",
+                    f"Found {total_records} total records using DatabaseManager",
                     duration,
                     counts
                 )
             else:
                 self.add_check(
-                    "Data Count",
+                    "Data Count", 
                     "WARNING",
                     "No data found in any tables",
                     duration,

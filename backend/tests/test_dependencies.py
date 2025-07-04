@@ -92,8 +92,9 @@ class TestRequestUtilities:
     def test_get_correlation_id_missing(self):
         """Test getting correlation ID when not set."""
         mock_request = Mock(spec=Request)
-        mock_request.state = Mock()
-        # correlation_id not set
+        # Create a state object without correlation_id attribute
+        mock_state = object()  # Empty object with no attributes
+        mock_request.state = mock_state
         
         result = get_correlation_id(mock_request)
         
@@ -113,8 +114,9 @@ class TestRequestUtilities:
     def test_get_request_logger_missing(self):
         """Test getting request logger when not set."""
         mock_request = Mock(spec=Request)
-        mock_request.state = Mock()
-        # logger not set
+        # Create a state object without logger attribute
+        mock_state = object()  # Empty object with no attributes
+        mock_request.state = mock_state
         
         result = get_request_logger(mock_request)
         
