@@ -84,6 +84,23 @@ This report documents the issues encountered while fixing the RottenStocks datab
 - Provide example configuration files
 - Use environment-specific defaults
 
+### 7. Database Constraint Violations on Duplicate Data
+**Issue**: Sample data generator failed with `UniqueViolationError` when trying to insert records with existing primary keys or unique constraints when users chose not to clear existing data.
+
+**Root Cause**: No duplicate checking before insertion, leading to constraint violations when data already existed.
+
+**Solution**: 
+- Added pre-insertion queries to check for existing records
+- Implemented graceful skipping of duplicates with user feedback
+- Created fallback logic to use existing data for dependent operations
+- Provided clear reporting of created vs skipped records
+
+**Prevention Strategy**:
+- Always check for existing records before insertion in data generation tools
+- Implement "upsert" patterns where appropriate
+- Provide clear user feedback about what operations were performed
+- Design tools to work incrementally with existing data
+
 ## Architecture Lessons
 
 ### What Worked Well
@@ -165,6 +182,7 @@ class DevToolsConfig:
 ### Commits
 - `9b88bc0`: Fix database testing tools to work independently of backend configuration
 - `70cdbfb`: Fix SQL text and datetime issues in generate_samples.py
+- `9736d3e`: Fix duplicate handling in sample data generator
 
 ## Conclusion
 
@@ -172,11 +190,13 @@ The main challenges were around:
 1. **Coupling**: Tight integration between components
 2. **Async Complexity**: Bridging async database operations with sync interfaces
 3. **Version Compatibility**: Keeping up with SQLAlchemy changes
+4. **Data Integrity**: Handling existing data gracefully in generation tools
 
 Key success factors:
 1. **Independence**: Making tools self-contained
 2. **Simplicity**: Prioritizing user experience over technical complexity
 3. **Configuration**: Externalizing environment-specific settings
+4. **Robustness**: Handling edge cases and existing data scenarios
 
 These patterns should guide future database tooling development to avoid similar issues.
 
@@ -187,3 +207,5 @@ These patterns should guide future database tooling development to avoid similar
 3. **Add unit tests** for development tools
 4. **Consider using dependency injection** for better testability
 5. **Document common patterns** for database tool development
+6. **Implement robust duplicate handling** in all data generation and import tools
+7. **Design tools to work incrementally** with existing data rather than requiring clean state
