@@ -42,7 +42,7 @@ except ImportError:
 # Add backend to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'backend'))
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
@@ -156,10 +156,10 @@ class SampleDataGenerator:
     async def clear_database(self):
         """Clear all existing data."""
         print("🗑️  Clearing existing data...")
-        await self.session.execute("DELETE FROM social_posts")
-        await self.session.execute("DELETE FROM ratings")
-        await self.session.execute("DELETE FROM experts")
-        await self.session.execute("DELETE FROM stocks")
+        await self.session.execute(text("DELETE FROM social_posts"))
+        await self.session.execute(text("DELETE FROM ratings"))
+        await self.session.execute(text("DELETE FROM experts"))
+        await self.session.execute(text("DELETE FROM stocks"))
         await self.session.commit()
         print("✅ Database cleared")
     
@@ -267,7 +267,7 @@ class SampleDataGenerator:
                     price_target=stock.current_price * Decimal(str(random.uniform(0.8, 1.4))),
                     price_at_rating=stock.current_price,
                     summary=f"{recommendation.value.replace('_', ' ').title()} recommendation based on {stock.sector} sector analysis",
-                    rating_date=datetime.utcnow() - timedelta(days=random.randint(0, 90)),
+                    rating_date=datetime.now() - timedelta(days=random.randint(0, 90)),
                 )
                 ratings.append(rating)
                 self.session.add(rating)
@@ -283,7 +283,7 @@ class SampleDataGenerator:
                 confidence=Decimal(str(random.uniform(0.5, 0.8))),
                 sample_size=random.randint(50, 500),
                 sentiment_sources="Reddit, Twitter, StockTwits",
-                rating_date=datetime.utcnow() - timedelta(days=random.randint(0, 7)),
+                rating_date=datetime.now() - timedelta(days=random.randint(0, 7)),
             )
             ratings.append(popular_rating)
             self.session.add(popular_rating)
@@ -334,8 +334,8 @@ class SampleDataGenerator:
                     share_count=random.randint(0, 50) if platform != Platform.REDDIT else None,
                     subreddit=random.choice(["wallstreetbets", "investing", "stocks", "SecurityAnalysis"]) if platform == Platform.REDDIT else None,
                     hashtags='["investing", "stocks", "finance"]' if platform == Platform.TWITTER else None,
-                    posted_at=datetime.utcnow() - timedelta(days=random.randint(0, 30)),
-                    collected_at=datetime.utcnow() - timedelta(hours=random.randint(0, 24)),
+                    posted_at=datetime.now() - timedelta(days=random.randint(0, 30)),
+                    collected_at=datetime.now() - timedelta(hours=random.randint(0, 24)),
                 )
                 
                 # Add sentiment analysis
