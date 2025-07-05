@@ -35,6 +35,7 @@ email-validator==2.1.0
 
 # Background Tasks
 celery[redis]==5.3.4
+APScheduler==3.10.4
 
 # Monitoring and Logging
 structlog==23.2.0

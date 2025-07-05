@@ -143,6 +143,34 @@ class Settings(BaseSettings):
     SENTIMENT_ANALYSIS_BATCH_SIZE: int = 50
     RATING_UPDATE_INTERVAL_MINUTES: int = 30
     
+    # Task Scheduling Configuration
+    ENABLE_SCHEDULED_TASKS: bool = True
+    TASK_PERSISTENCE_ENABLED: bool = True
+    TASK_REDIS_DB: int = 3  # Separate Redis DB for task storage
+    
+    # Alpha Vantage Configuration - Testing Mode
+    ALPHA_VANTAGE_DAILY_LIMIT: int = 25  # Testing phase limit
+    ALPHA_VANTAGE_SYNC_INTERVAL_MINUTES: int = 60  # 24 hours / 25 requests = ~60 minutes
+    STOCK_SYNC_BATCH_SIZE: int = 5  # Process 5 stocks at a time
+    
+    # Production Mode Configuration (override with environment variables)
+    ALPHA_VANTAGE_DAILY_LIMIT_PRODUCTION: int = 500  # Production limit
+    ALPHA_VANTAGE_SYNC_INTERVAL_MINUTES_PRODUCTION: int = 15  # Every 15 minutes
+    STOCK_SYNC_BATCH_SIZE_PRODUCTION: int = 20  # Process 20 stocks at a time
+    
+    # Scheduling Mode: 'testing' or 'production'
+    SCHEDULING_MODE: str = "testing"
+    
+    # Market Hours Configuration
+    MARKET_HOURS_SYNC_ENABLED: bool = True
+    MARKET_OPEN_HOUR: int = 9  # 9 AM Eastern
+    MARKET_CLOSE_HOUR: int = 16  # 4 PM Eastern
+    MARKET_TIMEZONE: str = "America/New_York"
+    
+    # Off-hours sync configuration
+    OFF_HOURS_SYNC_ENABLED: bool = True
+    OFF_HOURS_SYNC_INTERVAL_HOURS: int = 4  # Sync every 4 hours when market is closed
+    
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: str = "detailed"
@@ -220,6 +248,52 @@ class Settings(BaseSettings):
     def get_cors_origins(self) -> List[str]:
         """Get CORS origins as list of strings."""
         return [str(origin) for origin in self.BACKEND_CORS_ORIGINS]
+    
+    def get_alpha_vantage_daily_limit(self) -> int:
+        """Get Alpha Vantage daily limit based on scheduling mode."""
+        if self.SCHEDULING_MODE.lower() == "production":
+            return self.ALPHA_VANTAGE_DAILY_LIMIT_PRODUCTION
+        return self.ALPHA_VANTAGE_DAILY_LIMIT
+    
+    def get_sync_interval_minutes(self) -> int:
+        """Get sync interval based on scheduling mode."""
+        if self.SCHEDULING_MODE.lower() == "production":
+            return self.ALPHA_VANTAGE_SYNC_INTERVAL_MINUTES_PRODUCTION
+        return self.ALPHA_VANTAGE_SYNC_INTERVAL_MINUTES
+    
+    def get_batch_size(self) -> int:
+        """Get batch size based on scheduling mode."""
+        if self.SCHEDULING_MODE.lower() == "production":
+            return self.STOCK_SYNC_BATCH_SIZE_PRODUCTION
+        return self.STOCK_SYNC_BATCH_SIZE
+    
+    def is_market_hours(self) -> bool:
+        """Check if current time is during market hours."""
+        if not self.MARKET_HOURS_SYNC_ENABLED:
+            return True
+        
+        try:
+            from datetime import datetime
+            import pytz
+            
+            # Get current time in market timezone
+            market_tz = pytz.timezone(self.MARKET_TIMEZONE)
+            current_time = datetime.now(market_tz)
+            
+            # Check if it's a weekday (Monday = 0, Sunday = 6)
+            if current_time.weekday() > 4:  # Weekend
+                return False
+            
+            # Check if it's during market hours
+            current_hour = current_time.hour
+            return self.MARKET_OPEN_HOUR <= current_hour < self.MARKET_CLOSE_HOUR
+            
+        except ImportError:
+            # If pytz is not available, assume market hours
+            return True
+        except Exception:
+            # If there's any error, assume market hours
+            return True
 
 
 @lru_cache()

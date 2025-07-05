@@ -19,6 +19,8 @@ from fastapi.responses import JSONResponse
 from app.api.v1.api import api_router
 from app.core.config import get_settings, validate_environment
 from app.core.logging import configure_logging, get_logger, setup_request_logging
+from app.tasks.scheduler import get_scheduler
+from app.tasks.stock_sync import scheduled_stock_sync
 
 # Configure logging before importing other modules
 configure_logging()
@@ -35,9 +37,28 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     env_status = validate_environment()
     logger.info("Environment validation", status=env_status)
     
-    # TODO: Initialize database connection
-    # TODO: Initialize Redis connection
-    # TODO: Start background tasks
+    # Initialize and start task scheduler
+    settings = get_settings()
+    if settings.ENABLE_SCHEDULED_TASKS:
+        scheduler = get_scheduler()
+        await scheduler.start()
+        
+        # Schedule stock synchronization task with dynamic configuration
+        sync_interval = settings.get_sync_interval_minutes()
+        daily_limit = settings.get_alpha_vantage_daily_limit()
+        
+        scheduler.add_job(
+            scheduled_stock_sync,
+            trigger="interval",
+            minutes=sync_interval,
+            id="stock_sync",
+            name="Stock Data Synchronization"
+        )
+        
+        logger.info(
+            f"Scheduled stock sync every {sync_interval} minutes "
+            f"(Daily limit: {daily_limit} requests, Mode: {settings.SCHEDULING_MODE})"
+        )
     
     logger.info("RottenStocks API started successfully")
     
@@ -46,9 +67,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Shutting down RottenStocks API")
     
-    # TODO: Close database connections
-    # TODO: Close Redis connections
-    # TODO: Stop background tasks
+    # Stop task scheduler
+    if settings.ENABLE_SCHEDULED_TASKS:
+        scheduler = get_scheduler()
+        await scheduler.shutdown()
+        logger.info("Task scheduler stopped")
     
     logger.info("RottenStocks API shutdown complete")
 

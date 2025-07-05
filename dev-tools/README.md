@@ -165,6 +165,134 @@ python api_query_tool.py db stocks --limit 5 && \
 python api_query_tool.py db ratings --limit 5
 ```
 
+## Alpha Vantage Synchronization and Verification
+
+The new background task system automatically syncs stock data from Alpha Vantage every 60 minutes (respecting the 25 requests/day limit). Here's how to manually sync and verify the data:
+
+### 1. Manual Database Synchronization with Alpha Vantage
+
+```bash
+# Trigger immediate stock synchronization from Alpha Vantage to database
+curl -X POST http://localhost:8000/api/v1/tasks/sync/stock
+
+# Alternative: Seed test data with real Alpha Vantage data
+curl -X POST "http://localhost:8000/api/v1/testing/seed-data?symbols=AAPL&symbols=GOOGL&symbols=MSFT&symbols=TSLA&symbols=AMZN"
+
+# Force update existing stocks with fresh Alpha Vantage data
+curl -X POST "http://localhost:8000/api/v1/testing/seed-data?symbols=AAPL&symbols=GOOGL&force_update=true"
+```
+
+### 2. Verify Database Contains Fresh Stock Data
+
+```bash
+# Check data freshness and see when stocks were last updated
+curl http://localhost:8000/api/v1/testing/data-freshness | jq
+
+# List all stocks in database with their current prices and update times
+curl http://localhost:8000/api/v1/stocks/ | jq '.stocks[] | {symbol, name, current_price, last_updated}'
+
+# Get specific stock data from database (not from Alpha Vantage)
+curl http://localhost:8000/api/v1/stocks/symbol/AAPL | jq
+
+# Check how many stocks need updating
+curl http://localhost:8000/api/v1/tasks/sync/stock/status | jq
+```
+
+### 3. Comprehensive Sync Verification Workflow
+
+```bash
+# 1. Check current database state
+echo "=== Current Database State ==="
+curl -s http://localhost:8000/api/v1/testing/data-freshness | jq '.total_stocks, .updated_last_hour, .stale_stocks'
+
+# 2. Trigger sync with Alpha Vantage
+echo "=== Triggering Sync ==="
+curl -X POST http://localhost:8000/api/v1/tasks/sync/stock
+
+# 3. Wait a moment for sync to complete
+sleep 3
+
+# 4. Verify data was updated
+echo "=== After Sync ==="
+curl -s http://localhost:8000/api/v1/testing/data-freshness | jq '.total_stocks, .updated_last_hour, .stale_stocks'
+
+# 5. Check specific stock data
+echo "=== AAPL Stock Data ==="
+curl -s http://localhost:8000/api/v1/stocks/symbol/AAPL | jq '{symbol, current_price, change, last_updated}'
+```
+
+### 4. Monitor Background Task System
+
+```bash
+# Check task scheduler status
+curl http://localhost:8000/api/v1/tasks/ | jq
+
+# View task execution statistics
+curl http://localhost:8000/api/v1/tasks/stats | jq
+
+# Check system health (includes API, database, and sync status)
+curl http://localhost:8000/api/v1/testing/comprehensive | jq '.overall_health, .summary'
+
+# Monitor Alpha Vantage API usage
+curl http://localhost:8000/api/v1/tasks/sync/stock/status | jq '{requests_used_today, daily_limit, requests_remaining}'
+```
+
+### 5. Test End-to-End Data Flow
+
+```bash
+# Complete verification that data flows from Alpha Vantage → Database → API
+echo "=== Testing Complete Data Flow ==="
+
+# Step 1: Get current AAPL price from Alpha Vantage directly
+echo "1. Direct Alpha Vantage API call:"
+curl -X POST "http://localhost:8000/api/v1/testing/api/alpha-vantage?symbol=AAPL&test_type=quote" | jq '.sample_data.price'
+
+# Step 2: Sync to database
+echo "2. Syncing to database..."
+curl -X POST "http://localhost:8000/api/v1/testing/seed-data?symbols=AAPL&force_update=true" > /dev/null
+
+# Step 3: Verify database has the data
+echo "3. Database now contains:"
+curl -s http://localhost:8000/api/v1/stocks/symbol/AAPL | jq '{current_price, last_updated}'
+
+# Step 4: Test frontend would get database data (fast response)
+echo "4. API serving database data:"
+curl -s http://localhost:8000/api/v1/stocks/symbol/AAPL | jq '.current_price'
+
+echo "✅ Complete data flow verified!"
+```
+
+### 6. Troubleshooting Sync Issues
+
+```bash
+# Check if scheduler is running
+curl http://localhost:8000/api/v1/tasks/health | jq '.scheduler_running'
+
+# Check for sync errors
+curl http://localhost:8000/api/v1/tasks/stats | jq '.stock_sync_stats'
+
+# View recent task execution
+curl http://localhost:8000/api/v1/tasks/ | jq '.tasks[] | select(.task_id=="stock_sync")'
+
+# Test Alpha Vantage connectivity
+curl -X POST "http://localhost:8000/api/v1/testing/api/alpha-vantage?symbol=AAPL&test_type=quote" | jq '.success'
+
+# Check API rate limits
+curl http://localhost:8000/api/v1/tasks/sync/stock/status | jq '{requests_used_today, daily_limit}'
+```
+
+### Key Differences: Database vs Direct API
+
+```bash
+# ⚡ FAST: Get data from database (cached, no external API call)
+curl http://localhost:8000/api/v1/stocks/symbol/AAPL
+
+# 🐌 SLOW: Get data directly from Alpha Vantage (live API call)
+curl -X POST "http://localhost:8000/api/v1/testing/api/alpha-vantage?symbol=AAPL&test_type=quote"
+```
+
+The background sync system ensures your database always has fresh data while serving fast responses to users!
+
 ## Troubleshooting
 
 ### Services Not Starting
