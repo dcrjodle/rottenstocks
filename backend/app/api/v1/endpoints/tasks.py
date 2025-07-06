@@ -14,6 +14,11 @@ from fastapi.responses import JSONResponse
 from app.core.logging import get_logger
 from app.tasks.scheduler import get_scheduler
 from app.tasks.stock_sync import get_task_manager, scheduled_stock_sync
+from app.tasks.reddit_sync import (
+    get_reddit_task_manager, 
+    scheduled_reddit_finance_sync,
+    scheduled_reddit_trending_analysis
+)
 from app.tasks.models import (
     TaskInfo, TaskResponse, TaskListResponse, TaskStatsResponse,
     TaskCommand, TaskScheduleUpdate, BulkTaskOperation,
@@ -138,6 +143,42 @@ async def trigger_stock_sync(background_tasks: BackgroundTasks):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/sync/reddit", response_model=TaskResponse)
+async def trigger_reddit_sync(background_tasks: BackgroundTasks):
+    """Manually trigger Reddit finance discussions sync."""
+    try:
+        # Run sync in background
+        background_tasks.add_task(scheduled_reddit_finance_sync)
+        
+        return TaskResponse(
+            success=True,
+            message="Reddit synchronization triggered successfully",
+            data={"triggered_at": datetime.now().isoformat()}
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to trigger Reddit sync: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/sync/reddit/trending", response_model=TaskResponse)
+async def trigger_reddit_trending(background_tasks: BackgroundTasks):
+    """Manually trigger Reddit trending stocks analysis."""
+    try:
+        # Run trending analysis in background
+        background_tasks.add_task(scheduled_reddit_trending_analysis)
+        
+        return TaskResponse(
+            success=True,
+            message="Reddit trending analysis triggered successfully",
+            data={"triggered_at": datetime.now().isoformat()}
+        )
+        
+    except Exception as e:
+        logger.error(f"Failed to trigger Reddit trending analysis: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/sync/stock/status", response_model=StockSyncStats)
 async def get_stock_sync_status():
     """Get current stock synchronization status."""
@@ -149,6 +190,38 @@ async def get_stock_sync_status():
         
     except Exception as e:
         logger.error(f"Failed to get stock sync status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sync/reddit/status")
+async def get_reddit_sync_status():
+    """Get current Reddit synchronization status."""
+    try:
+        reddit_task_manager = get_reddit_task_manager()
+        stats = await reddit_task_manager.get_sync_stats()
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Failed to get Reddit sync status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/sync/reddit/trending")
+async def get_reddit_trending():
+    """Get current Reddit trending stocks."""
+    try:
+        reddit_task_manager = get_reddit_task_manager()
+        stats = await reddit_task_manager.get_sync_stats()
+        
+        return {
+            "trending_stocks": stats.get("trending_stocks", {}),
+            "last_analysis": stats.get("last_sync"),
+            "total_trending": len(stats.get("trending_stocks", {}))
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get Reddit trending: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -275,6 +348,8 @@ def _get_task_type(task_id: str) -> TaskType:
     """Get task type from task ID."""
     if "stock_sync" in task_id:
         return TaskType.STOCK_SYNC
+    elif "reddit" in task_id:
+        return TaskType.SOCIAL_MEDIA_SYNC
     elif "discovery" in task_id:
         return TaskType.STOCK_DISCOVERY
     elif "cleanup" in task_id:

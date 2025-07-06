@@ -15,6 +15,8 @@ from app.core.config import get_settings
 from app.db.session import get_db
 from app.external_apis.alpha_vantage.client import AlphaVantageClient
 from app.external_apis.alpha_vantage.service import AlphaVantageService
+from app.external_apis.reddit.client import RedditClient
+from app.external_apis.reddit.service import RedditService
 from app.external_apis.base.rate_limiter import RateLimiterManager
 from app.external_apis.base.retry import CircuitBreaker, RetryConfig
 
@@ -121,16 +123,34 @@ async def get_external_apis_health() -> dict:
             "error": str(e)
         }
 
+    # Check Reddit
+    try:
+        reddit_client = get_reddit_client()
+        reddit_health = await reddit_client.health_check()
+        health_status["external_apis"]["reddit"] = reddit_health
+    except Exception as e:
+        health_status["external_apis"]["reddit"] = {
+            "provider": "reddit",
+            "status": "unhealthy",
+            "error": str(e)
+        }
+
     # Check rate limiters
     try:
         rate_limiter_manager = get_rate_limiter_manager()
+        
+        # Alpha Vantage rate limiter
         alpha_vantage_limiter = rate_limiter_manager.get_alpha_vantage_limiter()
-        limiter_usage = await alpha_vantage_limiter.get_current_usage()
-        health_status["rate_limiters"]["alpha_vantage"] = limiter_usage
+        av_usage = await alpha_vantage_limiter.get_current_usage()
+        health_status["rate_limiters"]["alpha_vantage"] = av_usage
+        
+        # Reddit rate limiter
+        reddit_limiter = rate_limiter_manager.get_reddit_limiter()
+        reddit_usage = await reddit_limiter.get_current_usage()
+        health_status["rate_limiters"]["reddit"] = reddit_usage
+        
     except Exception as e:
-        health_status["rate_limiters"]["alpha_vantage"] = {
-            "error": str(e)
-        }
+        health_status["rate_limiters"]["error"] = str(e)
 
     # Check Redis cache
     try:
@@ -153,9 +173,35 @@ async def get_external_apis_health() -> dict:
 # Future providers for other APIs
 # These will be implemented in subsequent phases
 
-def get_reddit_client():
-    """Get Reddit API client (placeholder for P3.2)."""
-    raise NotImplementedError("Reddit client will be implemented in P3.2")
+@lru_cache
+def get_reddit_client() -> RedditClient:
+    """
+    Get Reddit client with rate limiting.
+    
+    Returns:
+        Configured Reddit client
+    """
+    rate_limiter_manager = get_rate_limiter_manager()
+    
+    # Get Reddit specific rate limiter
+    rate_limiter = rate_limiter_manager.get_reddit_limiter()
+    
+    return RedditClient(rate_limiter=rate_limiter)
+
+
+def get_reddit_service(
+    db: AsyncSession = Depends(get_db)
+) -> RedditService:
+    """
+    Get Reddit service with database dependencies.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        Configured Reddit service
+    """
+    return RedditService(db_session=db)
 
 
 def get_gemini_client():
@@ -168,8 +214,12 @@ async def cleanup_external_api_resources():
     """Clean up external API resources (for testing)."""
     try:
         # Close Alpha Vantage client
-        client = get_alpha_vantage_client()
-        await client.close()
+        alpha_vantage_client = get_alpha_vantage_client()
+        await alpha_vantage_client.close()
+
+        # Close Reddit client
+        reddit_client = get_reddit_client()
+        await reddit_client.close()
 
         # Close Redis connections
         redis_client = get_redis_client()

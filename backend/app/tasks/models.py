@@ -25,6 +25,7 @@ class TaskType(str, Enum):
     """Types of background tasks."""
     STOCK_SYNC = "stock_sync"
     STOCK_DISCOVERY = "stock_discovery"
+    SOCIAL_MEDIA_SYNC = "social_media_sync"
     CLEANUP = "cleanup"
     SENTIMENT_ANALYSIS = "sentiment_analysis"
 
