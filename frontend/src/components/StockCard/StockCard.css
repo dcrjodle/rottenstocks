@@ -1,0 +1,33 @@
+.stock-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 8px;
+  background-color: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+  min-width: 200px;
+}
+
+.stock-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stock-card--loading {
+  opacity: 0.6;
+}
+
+.stock-card__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.stock-card__price {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2e7d32;
+  font-family: 'Courier New', monospace;
+}

@@ -1,255 +1,259 @@
-# CLAUDE.md
+# CLAUDE Development Rules
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Code Generation and Project Structure Guidelines
 
-## Project Overview
+When generating code and structuring projects, follow these core principles:
 
-**RottenStocks** is a stock rating platform that provides dual ratings (expert and popular opinion) similar to Rotten Tomatoes for movies. It analyzes social media sentiment to generate buy/sell recommendations.
+---
 
-## Architecture
+## Component Structure Rules
 
-- **Frontend**: React 18 + TypeScript + Vite + Custom SASS/SCSS
-- **Backend**: FastAPI (Python) + SQLAlchemy + PostgreSQL
-- **AI/ML**: Google Gemini (gemini-1.5-flash) for sentiment analysis
-- **External APIs**: Reddit, Alpha Vantage
+### 100-Line Component Limit
+- Components should not exceed ~100 lines
+- If approaching limit, extract logic to hooks or split component
+- Components handle only rendering and user interaction
 
-## Python Environment
+### Logic Separation
+```javascript
+// ✅ Component: Only rendering and events
+function UserProfile({ userId }) {
+  const { user, loading, error, updateUser } = useUserProfile(userId);
+  
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage error={error} />;
+  
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <button onClick={() => updateUser(user.id, newData)}>
+        Update
+      </button>
+    </div>
+  );
+}
 
-**IMPORTANT**: This project uses a virtual environment for Python dependencies. The virtual environment is located in the `backend/` directory and can only be used from there.
+// ✅ Hook: State management and side effects
+function useUserProfile(userId) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  const updateUser = useCallback(async (id, data) => {
+    const result = await userService.update(id, data);
+    setUser(result);
+  }, []);
+  
+  return { user, loading, error, updateUser };
+}
 
-```bash
-# Navigate to backend directory first
-cd backend
-
-# Activate virtual environment (REQUIRED for all Python commands)
-source venv/bin/activate
-
-# Deactivate when done
-deactivate
+// ✅ Utils: Pure business logic
+export const userService = {
+  async update(id, data) {
+    const validated = validateUserData(data);
+    return api.put(`/users/${id}`, validated);
+  }
+};
 ```
 
-## Development Commands
+---
 
-### Backend
-```bash
-# Navigate to backend directory and activate virtual environment
-cd backend
-source venv/bin/activate
+## Context Comments
 
-# Start backend development server
-uvicorn app.main:app --reload
+Every component must start with context documentation:
 
-# Run backend tests
-pytest
-
-# Run linting
-ruff check .
-ruff format .
-
-# Database migrations
-alembic upgrade head
-alembic revision --autogenerate -m "description"
-
-# Run dev-tools (from backend directory)
-python ../dev-tools/api_query_tool.py --help
+```javascript
+/**
+ * CONTEXT: ComponentName
+ * PURPOSE: Brief description of what this component does
+ * DEPENDENCIES: List key dependencies (hooks, utils, APIs)
+ * TESTING: Reference to test file location
+ */
 ```
 
-### Frontend
-```bash
-# Start frontend development server
-cd frontend && npm run dev
-
-# Run frontend tests
-cd frontend && npm test
-
-# Build for production
-cd frontend && npm run build
-
-# Run linting
-cd frontend && npm run lint
+Example:
+```javascript
+/**
+ * CONTEXT: ProductCard
+ * PURPOSE: Displays product information with add-to-cart functionality
+ * DEPENDENCIES: useCart hook, priceUtils, productAPI
+ * TESTING: See ProductCard.test.js for coverage
+ */
+function ProductCard({ product }) {
+  // Component implementation
+}
 ```
 
-### Docker Commands
-```bash
-# Start all services
-docker-compose up -d
+---
 
-# View logs
-docker-compose logs -f
+## File Organization
 
-# Stop all services
-docker-compose down
+### Utils-First Approach
+- Extract all business logic to testable utility functions
+- Utils should be pure functions when possible
+- Group related utilities in dedicated files
+
+```
+src/
+├── components/
+│   ├── ProductCard/
+│   │   ├── ProductCard.jsx
+│   │   ├── ProductCard.test.js
+│   │   └── index.js
+├── hooks/
+│   ├── useCart.js
+│   ├── useProducts.js
+│   └── __tests__/
+├── utils/
+│   ├── priceUtils.js
+│   ├── validationUtils.js
+│   ├── dateUtils.js
+│   └── __tests__/
 ```
 
-### Makefile Commands
-```bash
-# Quick setup (recommended for new developers)
-make setup
+### Testability Requirements
+- Every utility function has unit tests
+- Hooks have dedicated test files
+- Components have integration tests
 
-# Start development environment
-make dev
+---
 
-# Run all tests
-make test
+## Development Approach
 
-# Health check all services
-make health
+### Small, Incremental Changes
+- Make minimal changes that add value
+- Test immediately after each change
+- Commit working state frequently
 
-# Install pre-commit hooks
-make install-hooks
+### Horizontal Slice Development
+Build features across all layers simultaneously:
 
-# Clean build artifacts
-make clean
+1. **Start with UI component** (minimal, with mock data)
+2. **Add hook for state management**
+3. **Create utility functions for business logic**
+4. **Add API integration**
+5. **Write comprehensive tests**
+
+```javascript
+// Phase 1: Component with mock data
+function UserList() {
+  const mockUsers = [{ id: 1, name: 'John' }];
+  return <ul>{mockUsers.map(user => <li key={user.id}>{user.name}</li>)}</ul>;
+}
+
+// Phase 2: Add hook
+function UserList() {
+  const { users } = useUsers();
+  return <ul>{users.map(user => <li key={user.id}>{user.name}</li>)}</ul>;
+}
+
+// Phase 3: Add business logic utils
+const userUtils = {
+  sortByName: (users) => users.sort((a, b) => a.name.localeCompare(b.name)),
+  filterActive: (users) => users.filter(user => user.active)
+};
+
+// Phase 4: Complete with API and tests
 ```
 
-### Health Checks
-```bash
-# Navigate to backend directory and activate virtual environment
-cd backend
-source venv/bin/activate
-
-# Comprehensive health check
-python ../scripts/health-check.py --detailed
-
-# Environment validation
-python ../scripts/env-validator.py --check-optional
-```
-
-## Custom Claude Commands
-
-### Phase Execution
-To execute a specific implementation phase:
-```
-Please execute phase [PHASE_ID]
-Example: Please execute phase P1.1
-```
-
-### Prompt Execution
-To execute a specific prompt:
-```
-Please execute prompt [PROMPT_ID]
-Example: Please execute prompt P1.1.1
-```
-
-### Status Check
-To check implementation status:
-```
-Please check implementation status
-```
-
-### Run Tests
-To run tests:
-```
-Please run tests for [backend|frontend|all]
-```
-
-## Implementation Phases Reference
-
-- **P1**: Foundation & Documentation
-  - P1.1: Documentation structure
-  - P1.2: Development environment
-- **P2**: Backend Foundation
-  - P2.1: FastAPI setup
-  - P2.2: Database setup
-  - P2.3: Core API endpoints
-- **P3**: External Integrations
-  - P3.1: Stock data integration
-  - P3.2: Social media integration
-  - P3.3: AI sentiment analysis
-- **P4**: Frontend Development
-  - P4.1: React setup
-  - P4.2: Design system
-  - P4.3: Core features
-- **P5**: Testing & Quality
-  - P5.1: Backend testing
-  - P5.2: Frontend testing
-- **P6**: Production Ready
-  - P6.1: Performance optimization
-  - P6.2: Deployment setup
+---
 
 ## Testing Strategy
 
-**CRITICAL REQUIREMENT**: For every major functionality implemented, comprehensive tests MUST be added before the feature is considered complete.
+### Required Test Coverage
+- **Utils**: Unit tests for all functions
+- **Hooks**: Test state management and side effects
+- **Components**: Integration tests for user interactions
+- **E2E**: Critical user journeys
 
-### Test Requirements
-1. **Test Coverage**: Maintain test coverage above 80% for all code
-2. **Test-First Approach**: Write tests for every new feature, API endpoint, database model, service, and utility function
-3. **Test Types Required**:
-   - Unit tests for all functions and methods
-   - Integration tests for API endpoints
-   - Database tests with proper fixtures and cleanup
-   - Error handling and edge case tests
-   - Security and validation tests
+### Test File Structure
+```javascript
+// utils/priceUtils.test.js
+describe('priceUtils', () => {
+  describe('calculateDiscount', () => {
+    it('should calculate percentage discount correctly', () => {
+      expect(calculateDiscount(100, 0.1)).toBe(10);
+    });
+    
+    it('should handle edge cases', () => {
+      expect(calculateDiscount(0, 0.1)).toBe(0);
+      expect(calculateDiscount(100, 0)).toBe(0);
+    });
+  });
+});
+```
 
-### Backend Testing Standards
-1. Use pytest with fixtures for database testing
-2. Test all API endpoints (success, error, edge cases)
-3. Test database models, relationships, and constraints
-4. Test authentication, authorization, and security features
-5. Test external API integrations with mocking
-6. Test background tasks and asynchronous operations
-7. Integration tests should use test databases with proper isolation
+---
 
-### Frontend Testing Standards
-1. Use Jest and React Testing Library
-2. Test all components (rendering, interactions, state changes)
-3. Test hooks and custom logic
-4. Test API integration and error handling
-5. Test user workflows and accessibility
+## Code Generation Guidelines
 
-### Test Implementation Rules
-- **Before committing**: All new code must have corresponding tests
-- **Before merging**: Test suite must pass with 80%+ coverage
-- **Test organization**: Group related tests in logical modules
-- **Test naming**: Use descriptive test names that explain the scenario
-- **Mock external dependencies**: Use proper mocking for external APIs and services
+When generating code, always:
 
-## Code Quality Standards
+1. **Start with context comment**
+2. **Keep components under 100 lines**
+3. **Extract logic to hooks and utils**
+4. **Create accompanying test files**
+5. **Use descriptive, self-documenting names**
+6. **Follow horizontal slice pattern**
 
-1. Python: Follow PEP 8, use type hints
-2. TypeScript: Use strict mode, avoid any types
-3. All code must pass linting before commit
-4. Maintain test coverage above 80%
-5. **No feature is complete without comprehensive tests**
+### Example Generated Structure
+```javascript
+/**
+ * CONTEXT: ShoppingCart
+ * PURPOSE: Manages cart items with add/remove functionality
+ * DEPENDENCIES: useCart hook, cartUtils, productAPI
+ * TESTING: See ShoppingCart.test.js
+ */
+function ShoppingCart() {
+  const { items, addItem, removeItem, total } = useCart();
+  
+  return (
+    <div className="shopping-cart">
+      <h2>Cart ({cartUtils.getItemCount(items)} items)</h2>
+      {items.map(item => (
+        <CartItem 
+          key={item.id} 
+          item={item} 
+          onRemove={() => removeItem(item.id)} 
+        />
+      ))}
+      <div className="total">Total: {cartUtils.formatPrice(total)}</div>
+    </div>
+  );
+}
+```
 
-## Reporting and Documentation
+---
 
-When significant issues, implementation challenges, or architectural decisions are encountered, Claude should create detailed reports in the `docs/reports/` folder.
+## Error Handling Pattern
 
-### Report Guidelines
+Always include proper error handling:
 
-1. **File Naming**: Use format `{topic}-{YYYY-MM-DD}.md`
-   - Example: `database-testing-tools-issues-2025-07-04.md`
+```javascript
+// Hook with error handling
+function useData(id) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError(null);
+        const result = await dataService.fetch(id);
+        setData(result);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchData();
+  }, [id]);
+  
+  return { data, loading, error };
+}
+```
 
-2. **Report Structure**:
-   ```markdown
-   # Title
-   **Date**: Date  
-   **Author**: Claude Code Assistant  
-   **Context**: Brief context
-   
-   ## Overview
-   ## Issues Encountered and Solutions
-   ## Architecture Lessons
-   ## Recommendations for Future Development
-   ## Conclusion
-   ```
-
-3. **When to Create Reports**:
-   - Complex debugging sessions with multiple issues
-   - Architecture decisions and trade-offs
-   - Performance analysis and optimization
-   - Security issue analysis
-   - Integration challenges with external systems
-   - Tool development and process improvements
-
-4. **Report Content Should Include**:
-   - Root cause analysis of issues
-   - Solutions attempted and their outcomes
-   - Lessons learned and prevention strategies
-   - Code examples and patterns
-   - Performance observations
-   - Security considerations
-   - Recommendations for future development
-
-These reports help maintain institutional knowledge and prevent similar issues in the future.
+These rules ensure maintainable, testable, and scalable code generation that follows established patterns and best practices.
