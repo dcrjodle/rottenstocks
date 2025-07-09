@@ -7,9 +7,14 @@
 
 import React from 'react';
 import { stockUtils } from '../../utils/stockUtils';
+import { Stock } from '../../types/stock';
 import './StockCard.css';
 
-function StockCard({ stock }) {
+interface StockCardProps {
+  stock?: Stock;
+}
+
+function StockCard({ stock }: StockCardProps) {
   if (!stock) {
     return (
       <div className="stock-card stock-card--loading">

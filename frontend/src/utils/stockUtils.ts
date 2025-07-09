@@ -1,14 +1,7 @@
-/**
- * Utility functions for stock data manipulation and formatting
- */
+import { Stock } from '../types/stock';
 
 export const stockUtils = {
-  /**
-   * Format price as currency string
-   * @param {number} price - The price to format
-   * @returns {string} Formatted price string
-   */
-  formatPrice(price) {
+  formatPrice(price: number): string {
     if (typeof price !== 'number' || isNaN(price)) {
       return '$0.00';
     }
@@ -21,12 +14,7 @@ export const stockUtils = {
     }).format(price);
   },
 
-  /**
-   * Validate stock data structure
-   * @param {object} stock - Stock object to validate
-   * @returns {boolean} True if valid stock object
-   */
-  isValidStock(stock) {
+  isValidStock(stock: any): stock is Stock {
     return (
       stock &&
       typeof stock.id === 'number' &&
@@ -37,12 +25,7 @@ export const stockUtils = {
     );
   },
 
-  /**
-   * Sort stocks by name alphabetically
-   * @param {Array} stocks - Array of stock objects
-   * @returns {Array} Sorted array of stocks
-   */
-  sortByName(stocks) {
+  sortByName(stocks: Stock[]): Stock[] {
     if (!Array.isArray(stocks)) {
       return [];
     }
@@ -53,12 +36,7 @@ export const stockUtils = {
     });
   },
 
-  /**
-   * Sort stocks by price (descending)
-   * @param {Array} stocks - Array of stock objects
-   * @returns {Array} Sorted array of stocks
-   */
-  sortByPrice(stocks) {
+  sortByPrice(stocks: Stock[]): Stock[] {
     if (!Array.isArray(stocks)) {
       return [];
     }

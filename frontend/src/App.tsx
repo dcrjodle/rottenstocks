@@ -11,7 +11,7 @@ import { useStocks } from './hooks/useStocks';
 import { stockUtils } from './utils/stockUtils';
 import './App.css';
 
-function App() {
+function App(): React.JSX.Element {
   const { stocks, loading, error, refetch } = useStocks();
 
   if (loading) {

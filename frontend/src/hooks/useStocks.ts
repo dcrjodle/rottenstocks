@@ -7,13 +7,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { stockUtils } from '../utils/stockUtils';
+import { Stock, UseStocksReturn } from '../types/stock';
 
 const API_BASE_URL = 'http://localhost:8000';
 
-export function useStocks() {
-  const [stocks, setStocks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+export function useStocks(): UseStocksReturn {
+  const [stocks, setStocks] = useState<Stock[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchStocks = useCallback(async () => {
     try {
@@ -29,18 +30,18 @@ export function useStocks() {
       const data = await response.json();
       
       // Validate stock data
-      const validStocks = data.filter(stock => stockUtils.isValidStock(stock));
+      const validStocks = data.filter((stock: any) => stockUtils.isValidStock(stock));
       
       setStocks(validStocks);
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       setStocks([]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const createStock = useCallback(async (name, price) => {
+  const createStock = useCallback(async (name: string, price: number): Promise<Stock> => {
     try {
       const response = await fetch(`${API_BASE_URL}/stocks`, {
         method: 'POST',
@@ -63,12 +64,12 @@ export function useStocks() {
       
       throw new Error('Invalid stock data received');
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       throw err;
     }
   }, []);
 
-  const updateStock = useCallback(async (id, name, price) => {
+  const updateStock = useCallback(async (id: number, name: string, price: number): Promise<Stock> => {
     try {
       const response = await fetch(`${API_BASE_URL}/stocks/${id}`, {
         method: 'PUT',
@@ -93,12 +94,12 @@ export function useStocks() {
       
       throw new Error('Invalid stock data received');
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       throw err;
     }
   }, []);
 
-  const deleteStock = useCallback(async (id) => {
+  const deleteStock = useCallback(async (id: number): Promise<void> => {
     try {
       const response = await fetch(`${API_BASE_URL}/stocks/${id}`, {
         method: 'DELETE',
@@ -110,7 +111,7 @@ export function useStocks() {
 
       setStocks(prev => prev.filter(stock => stock.id !== id));
     } catch (err) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
       throw err;
     }
   }, []);
