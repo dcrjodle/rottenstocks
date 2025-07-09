@@ -46,6 +46,6 @@ npx playwright test
 ## Tech Stack
 
 - **Backend**: Python 3.13, FastAPI, SQLite3, Uvicorn
-- **Frontend**: React 18, Custom hooks, CSS Grid
+- **Frontend**: React 18, TypeScript, Custom hooks, CSS Grid
 - **Testing**: Playwright E2E tests
 - **Database**: SQLite3 with real stock data
