@@ -116,6 +116,27 @@ export function useStocks(): UseStocksReturn {
     }
   }, []);
 
+  const syncStocks = useCallback(async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${API_BASE_URL}/stocks/sync/`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      // After syncing, refetch the stocks to get the updated data
+      await fetchStocks();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      throw err;
+    }
+  }, [fetchStocks]);
+
   useEffect(() => {
     fetchStocks();
   }, [fetchStocks]);
@@ -128,5 +149,6 @@ export function useStocks(): UseStocksReturn {
     createStock,
     updateStock,
     deleteStock,
+    syncStocks,
   };
 }

@@ -22,4 +22,5 @@ export interface UseStocksReturn {
   createStock: (name: string, price: number) => Promise<Stock>;
   updateStock: (id: number, name: string, price: number) => Promise<Stock>;
   deleteStock: (id: number) => Promise<void>;
+  syncStocks: () => Promise<void>;
 }

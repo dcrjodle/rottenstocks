@@ -7,19 +7,18 @@
 
 import React from 'react';
 import StockCard from './components/StockCard';
+import AppHeader from './components/AppHeader';
 import { useStocks } from './hooks/useStocks';
 import { stockUtils } from './utils/stockUtils';
 import './App.css';
 
 function App(): React.JSX.Element {
-  const { stocks, loading, error, refetch } = useStocks();
+  const { stocks, loading, error, refetch, syncStocks } = useStocks();
 
   if (loading) {
     return (
       <div className="app">
-        <header className="app-header">
-          <h1>Stock Portfolio</h1>
-        </header>
+        <AppHeader stockCount={stocks.length} onSync={syncStocks} loading={loading} />
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Loading stocks...</p>
@@ -31,9 +30,7 @@ function App(): React.JSX.Element {
   if (error) {
     return (
       <div className="app">
-        <header className="app-header">
-          <h1>Stock Portfolio</h1>
-        </header>
+        <AppHeader stockCount={stocks.length} onSync={syncStocks} loading={loading} />
         <div className="error-container">
           <p className="error-message">Error: {error}</p>
           <button onClick={refetch} className="retry-button">
@@ -48,10 +45,7 @@ function App(): React.JSX.Element {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <h1>Stock Portfolio</h1>
-        <p>Total stocks: {stocks.length}</p>
-      </header>
+      <AppHeader stockCount={stocks.length} onSync={syncStocks} loading={loading} />
       
       <main className="app-main">
         {sortedStocks.length === 0 ? (

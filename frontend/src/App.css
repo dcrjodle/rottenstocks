@@ -8,24 +8,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-.app-header {
-  background-color: #282c34;
-  color: white;
-  padding: 20px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.app-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 2rem;
-}
-
-.app-header p {
-  margin: 0;
-  font-size: 1rem;
-  opacity: 0.8;
-}
 
 .app-main {
   padding: 20px;
