@@ -3,6 +3,8 @@ Test refresh endpoint
 """
 import asyncio
 import os
+import sys
+sys.path.append('/Users/joel.bystedt/rottenstocks/backend/src')
 from main import refresh_database
 
 async def test_refresh():

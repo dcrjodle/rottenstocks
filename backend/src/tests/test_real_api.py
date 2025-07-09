@@ -10,7 +10,8 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(env_path)
 
-from alphavantage_service import AlphaVantageService
+sys.path.append('/Users/joel.bystedt/rottenstocks/backend/src')
+from services.alphavantage_service import AlphaVantageService
 
 def test_real_api():
     api_key = os.getenv('ALPHA_VANTAGE_API_KEY')

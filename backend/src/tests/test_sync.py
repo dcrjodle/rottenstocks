@@ -3,7 +3,9 @@ Test sync functionality with valid and invalid symbols
 """
 import asyncio
 import os
-from stock_sync_service import StockSyncService
+import sys
+sys.path.append('/Users/joel.bystedt/rottenstocks/backend/src')
+from services.stock_sync_service import StockSyncService
 
 async def test_sync():
     # Set demo API key

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import uvicorn
 import asyncio
-from database import (
+from src.models.database import (
     init_database, 
     seed_data, 
     get_all_stocks, 
@@ -14,7 +14,7 @@ from database import (
     update_stock, 
     delete_stock
 )
-from stock_sync_service import stock_sync_service
+from src.services.stock_sync_service import stock_sync_service
 
 app = FastAPI(title="Stock Management API", version="1.0.0")
 

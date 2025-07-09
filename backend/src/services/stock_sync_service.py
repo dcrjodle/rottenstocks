@@ -9,8 +9,8 @@ import asyncio
 import logging
 from typing import List, Dict, Any, Optional, Set
 from datetime import datetime, timedelta
-from alphavantage_service import AlphaVantageService
-from database import (
+from .alphavantage_service import AlphaVantageService
+from ..models.database import (
     get_all_stocks, 
     get_stock_by_symbol, 
     create_or_update_stock_from_alpha_vantage

@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test.describe('Stock Portfolio E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
@@ -16,10 +16,10 @@ test.describe('Stock Portfolio E2E Tests', () => {
     
     // Check that stock cards are present
     const stockCards = page.locator('[data-testid="stock-card"]');
-    await expect(stockCards).toHaveCount(3); // We seeded 3 stocks
+    await expect(stockCards).toHaveCount(6); // We have 6 stocks in database
     
     // Verify each stock card has name and price
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 6; i++) {
       const card = stockCards.nth(i);
       await expect(card.locator('[data-testid="stock-name"]')).toBeVisible();
       await expect(card.locator('[data-testid="stock-price"]')).toBeVisible();
@@ -32,7 +32,7 @@ test.describe('Stock Portfolio E2E Tests', () => {
     
     // Check for specific stock names (seeded data)
     const stockNames = page.locator('[data-testid="stock-name"]');
-    await expect(stockNames).toContainText(['Apple Inc.', 'Microsoft Corporation', 'NVIDIA Corporation']);
+    await expect(stockNames).toContainText(['Apple Inc', 'Microsoft Corporation', 'NVDA Corporation']);
     
     // Check that prices are formatted correctly (contains $ symbol)
     const stockPrices = page.locator('[data-testid="stock-price"]');
@@ -49,7 +49,7 @@ test.describe('Stock Portfolio E2E Tests', () => {
     await page.waitForSelector('[data-testid="stocks-grid"]');
     
     // Check total count display
-    await expect(page.locator('.app-header p')).toHaveText('Total stocks: 3');
+    await expect(page.locator('.app-header p')).toHaveText('Total stocks: 6');
   });
 
   test('should handle loading state', async ({ page }) => {

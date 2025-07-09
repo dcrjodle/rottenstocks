@@ -11,7 +11,9 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent / '.env'
 load_dotenv(env_path)
 
-from stock_sync_service import StockSyncService
+import sys
+sys.path.append('/Users/joel.bystedt/rottenstocks/backend/src')
+from services.stock_sync_service import StockSyncService
 
 async def test_sync_speed():
     print("🚀 Testing Sync Speed Optimization")

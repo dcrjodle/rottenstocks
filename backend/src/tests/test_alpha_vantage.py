@@ -2,7 +2,9 @@
 Test Alpha Vantage API directly to see what's happening
 """
 import os
-from alphavantage_service import AlphaVantageService
+import sys
+sys.path.append('/Users/joel.bystedt/rottenstocks/backend/src')
+from services.alphavantage_service import AlphaVantageService
 
 def test_alpha_vantage():
     os.environ['ALPHA_VANTAGE_API_KEY'] = 'demo'

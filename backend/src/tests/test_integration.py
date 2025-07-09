@@ -2,8 +2,10 @@
 Test script for AlphaVantage integration
 """
 import os
-from alphavantage_service import AlphaVantageService
-from database import init_database
+import sys
+sys.path.append('/Users/joel.bystedt/rottenstocks/backend/src')
+from services.alphavantage_service import AlphaVantageService
+from models.database import init_database
 
 def test_alpha_vantage_integration():
     """Test AlphaVantage integration with demo key"""

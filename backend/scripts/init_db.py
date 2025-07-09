@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Database initialization script for the stock management system."""
 
-from database import init_database, seed_data
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+from models.database import init_database, seed_data
 
 def main():
     """Initialize the database and seed with initial data."""
